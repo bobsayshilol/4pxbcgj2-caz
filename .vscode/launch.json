@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "Run",
+            "command": "love ${workspaceFolder}",
+            "request": "launch",
+            "type": "node-terminal",
+        },
+    ]
+}
