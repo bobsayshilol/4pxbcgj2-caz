@@ -85,10 +85,10 @@ local draw = function(self)
             local pid = state.pid
             local cols = g_globals.playerCols[pid]
             love.graphics.setColor(cols[1], cols[2], cols[3], 1)
-            drawCentered("Controller " .. id .. " is player " .. pid, y, 2)
+            drawCentered("Controller '" .. id .. "' is player " .. pid, y, 2)
         else
             love.graphics.setColor(1, 1, 1, 1)
-            drawCentered("Controller " .. id .. " not ready", y, 2)
+            drawCentered("Controller '" .. id .. "' not ready", y, 2)
         end
     end
 end
@@ -108,6 +108,9 @@ local new = function()
     -- Add existing joysticks.
     for _,js in pairs(love.joystick.getJoysticks()) do
         menu:joystickadded(js)
+    end
+    if ADD_FAKE_DEVICE then
+        menu:joystickadded(g_fakeDevice)
     end
 
     return menu

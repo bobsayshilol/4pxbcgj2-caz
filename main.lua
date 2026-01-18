@@ -40,6 +40,14 @@ local s_menus = {
 
 
 
+-- Fake devices.
+ADD_FAKE_DEVICE = true
+g_fakeDevice = {
+    getID = function(self) return -1,-1 end
+}
+
+
+
 -- Callbacks.
 function love.load()
     love.window.setMode(1440, 900)
@@ -54,6 +62,24 @@ function love.update(dt)
     local nextMenu = s_menu:update(dt)
     if nextMenu ~= nil then
         s_menu = s_menus[nextMenu]()
+    end
+end
+
+function love.keypressed(key, scancode, isRepeat)
+    if ADD_FAKE_DEVICE then
+        if scancode == "e" then
+            love.gamepadpressed(g_fakeDevice, "a")
+        elseif scancode == "q" then
+            love.gamepadpressed(g_fakeDevice, "b")
+        elseif scancode == "w" then
+            love.gamepadpressed(g_fakeDevice, "dpup")
+        elseif scancode == "s" then
+            love.gamepadpressed(g_fakeDevice, "dpdown")
+        elseif scancode == "a" then
+            love.gamepadpressed(g_fakeDevice, "dpleft")
+        elseif scancode == "d" then
+            love.gamepadpressed(g_fakeDevice, "dpright")
+        end
     end
 end
 
