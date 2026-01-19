@@ -12,32 +12,53 @@ local PT = {
     Empty = {
         name="Empty",
         draw = function(x,y) end,
+        --canMove = function(dx,dy) return false end,
     },
     Pawn = {
         name="Pawn",
         draw = function(x,y) love.graphics.print("Pawn", x, y) end,
+        canMove = function(dx,dy)
+            dx,dy = math.abs(dx),math.abs(dy)
+            return (dx==0 and dy<2) or (dx<2 and dy==0)
+        end,
     },
     Rook = {
         name="Rook",
         draw = function(x,y) love.graphics.print("Rook", x, y) end,
+        canMove = function(dx,dy)
+            return math.abs(dx) == 0 or math.abs(dy) == 0
+        end,
     },
     Knight = {
         name="Knight",
         draw = function(x,y) love.graphics.print("Knight", x, y) end,
+        canMove = function(dx,dy)
+            dx,dy = math.abs(dx),math.abs(dy)
+            return (dx==0 and dy==0) or (dx==1 and dy==2) or (dx==2 and dy==1)
+        end,
     },
     Bishop = {
         name="Bishop",
         draw = function(x,y) love.graphics.print("Bishop", x, y) end,
+        canMove = function(dx,dy)
+            return math.abs(dx) == math.abs(dy)
+        end,
     },
     King = {
         name="King",
         draw = function(x,y) love.graphics.print("King", x, y) end,
+        canMove = function(dx,dy)
+            dx,dy = math.abs(dx),math.abs(dy)
+            return (dx<2) and (dy<2)
+        end,
     },
 }
-local pieceMake = function(t, o)
+local pieceMake = function(t, o, x,y)
     local p = {
         typ = t,
         owner = o,
+        x = x,
+        y = y,
         selected = false,
         draw = function(self, x,y)
             if not self.owner then return end -- Empty tiles aren't owned
@@ -45,7 +66,10 @@ local pieceMake = function(t, o)
             if self.selected then s = 0.5 end
             love.graphics.setColor(s*self.owner.col[1], s*self.owner.col[2], s*self.owner.col[3], 1)
             self.typ.draw(x,y)
-        end
+        end,
+        canMove = function(self, tx,ty)
+            return self.typ.canMove(1+tx-self.x, 1+ty-self.y)
+        end,
     }
     return p
 end
@@ -75,7 +99,7 @@ local gridMake = function(players)
     for j = 1,16 do
         grid[j] = {}
         for i = 1,16 do
-            grid[j][i] = pieceMake(PT.Empty, nil)
+            grid[j][i] = pieceMake(PT.Empty, nil, i,j)
         end
     end
 
@@ -83,7 +107,7 @@ local gridMake = function(players)
     local fill = function(p, sx,sy, rx,ry, dx,dy)   -- start, right, down
         local set = function(i, j, t)
             local x,y = sx + rx*i + dx*j, sy + ry*i + dy*j
-            grid[y][x] = pieceMake(t, p)
+            grid[y][x] = pieceMake(t, p, x,y)
         end
 
         for i = 0,11 do set(i, 1, PT.Pawn) end
@@ -115,6 +139,8 @@ end
 
 
 
+-- Callbacks.
+
 local update = function(self, dt)
     return nil
 end
@@ -123,9 +149,6 @@ local gamepadpressed = function(self, js, button)
     local playerID = g_globals.jsToPlayerID[js]
     local player = self.players[playerID]
     if not player then return end
-
-    local dx = 0
-    local dy = 0
 
     if button == "a" then
         -- Action.
@@ -139,14 +162,29 @@ local gamepadpressed = function(self, js, button)
 
         else
             -- Try and place it.
-            -- TODO: checks
             local selection = player.selection
-            player.selection = nil
-            selection.selected = false
-            player.lastPieceType = selection.typ
+            if selection:canMove(player.x, player.y) then
+                selection.selected = false
+                player.lastPieceType = selection.typ
+                player.selection = nil
+            end
         end
 
-    elseif button == "dpright" then
+        return
+
+    elseif button == "b" then
+        if player.selection ~= nil then
+            player.selection.selected = false
+            player.selection = nil
+        end
+
+        return
+    end
+
+    local dx = 0
+    local dy = 0
+
+    if button == "dpright" then
         dx = dx + 1
     elseif button == "dpleft" then
         dx = dx - 1
