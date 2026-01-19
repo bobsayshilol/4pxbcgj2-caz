@@ -287,8 +287,9 @@ local draw = function(self)
     for y = 0,15 do
         for x = 0,15 do
             -- Border.
-            love.graphics.setColor(1, 1, 1, 1)
-            love.graphics.rectangle("line", offsetX+x*cellX, offsetY+y*cellY, cellX, cellY)
+            local grey = 0.8
+            love.graphics.setColor(grey,grey,grey,1)
+            love.graphics.rectangle(((x + y) % 2 == 0) and "fill" or "line", offsetX+x*cellX, offsetY+y*cellY, cellX, cellY)
             -- Contents.
             gridGet(self.grid, x, y):draw(offsetX+x*cellX, offsetY+y*cellY)
         end
