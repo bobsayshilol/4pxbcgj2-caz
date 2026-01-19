@@ -232,6 +232,7 @@ local gamepadpressed = function(self, js, button)
                 if dx == 0 then
                     m = math.abs(y+1-selection.y)
                 end
+                if canTake then m = m - 1 end
                 for t=1,m do
                     good = good and gridGet(self.grid, selection.x-1 + t*dx, selection.y-1 + t*dy).typ == PT.Empty
                 end
