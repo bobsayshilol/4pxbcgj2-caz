@@ -5,6 +5,8 @@ Players can't move the same unit twice in a row.
 Grid is 16x16 (12 + 2*2)
 --]]
 
+local DISABLED_MOVE_TIME = 3 -- seconds
+
 
 
 -- Pieces.
@@ -62,6 +64,7 @@ local pieceMake = function(t, o, x,y)
         owner = o,
         x = x,
         y = y,
+        disabledCountdown = DISABLED_MOVE_TIME,
         selected = false,
         draw = function(self, x,y)
             if not self.owner then return end -- Empty tiles aren't owned
@@ -69,6 +72,14 @@ local pieceMake = function(t, o, x,y)
             if self.selected then s = 0.5 end
             love.graphics.setColor(s*self.owner.col[1], s*self.owner.col[2], s*self.owner.col[3], 1)
             self.typ.draw(x,y)
+
+            -- Draw over to show countdown.
+            if self.disabledCountdown > 0 then
+                love.graphics.setColor(self.owner.col[1], self.owner.col[2], self.owner.col[3], 0.4)
+                local cellX,cellY = g_globals.cx, g_globals.cy
+                local remaining = cellY * self.disabledCountdown / DISABLED_MOVE_TIME
+                love.graphics.rectangle("fill", x, y + remaining, cellX, cellY - remaining)
+            end
         end,
         canMove = function(self, tx,ty)
             local dx,dy = 1+tx-self.x, 1+ty-self.y
@@ -167,6 +178,17 @@ local update = function(self, dt)
     elseif self.winner then
         return nil
     end
+
+    -- Update countdowns.
+    for j = 1,16 do
+        for i = 1,16 do
+            local p = self.grid[j][i]
+            if p.disabledCountdown > 0 then
+                p.disabledCountdown = p.disabledCountdown - dt
+            end
+        end
+    end
+
     return nil
 end
 
@@ -201,7 +223,7 @@ local gamepadpressed = function(self, js, button)
         if player.selection == nil then
             -- Pick up piece.
             local piece = gridGet(self.grid, player.x, player.y)
-            if piece.owner == player and piece.typ ~= player.lastPieceType then
+            if piece.owner == player and piece.typ ~= player.lastPieceType and piece.disabledCountdown <= 0 then
                 player.selection = piece
                 piece.selected = true
             end
