@@ -320,8 +320,8 @@ local gamepadpressed = function(self, js, button)
     end
 
     if js:isGamepadDown("rightshoulder") then
-        dx = dx * 6
-        dy = dy * 6
+        dx = dx * 3
+        dy = dy * 3
     end
 
     -- Move the player.
