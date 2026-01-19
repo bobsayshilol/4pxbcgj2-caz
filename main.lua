@@ -46,6 +46,10 @@ g_fakeDevice = {
     getID = function(self) return -1,-1 end,
     setVibration = function(self, l, r, t) end,
 }
+g_fakeDevice2 = {
+    getID = function(self) return -2,-1 end,
+    setVibration = function(self, l, r, t) end,
+}
 
 
 
@@ -67,7 +71,7 @@ function love.update(dt)
 end
 
 function love.keypressed(key, scancode, isRepeat)
-    if ADD_FAKE_DEVICE then
+    if ADD_FAKE_DEVICES then
         if scancode == "e" then
             love.gamepadpressed(g_fakeDevice, "a")
         elseif scancode == "q" then
@@ -80,6 +84,19 @@ function love.keypressed(key, scancode, isRepeat)
             love.gamepadpressed(g_fakeDevice, "dpleft")
         elseif scancode == "d" then
             love.gamepadpressed(g_fakeDevice, "dpright")
+
+        elseif scancode == "o" then
+            love.gamepadpressed(g_fakeDevice2, "a")
+        elseif scancode == "u" then
+            love.gamepadpressed(g_fakeDevice2, "b")
+        elseif scancode == "i" then
+            love.gamepadpressed(g_fakeDevice2, "dpup")
+        elseif scancode == "k" then
+            love.gamepadpressed(g_fakeDevice2, "dpdown")
+        elseif scancode == "j" then
+            love.gamepadpressed(g_fakeDevice2, "dpleft")
+        elseif scancode == "l" then
+            love.gamepadpressed(g_fakeDevice2, "dpright")
         end
     end
 end

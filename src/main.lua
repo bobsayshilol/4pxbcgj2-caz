@@ -109,8 +109,9 @@ local new = function()
     for _,js in pairs(love.joystick.getJoysticks()) do
         menu:joystickadded(js)
     end
-    if ADD_FAKE_DEVICE then
+    if ADD_FAKE_DEVICES then
         menu:joystickadded(g_fakeDevice)
+        menu:joystickadded(g_fakeDevice2)
     end
 
     return menu
