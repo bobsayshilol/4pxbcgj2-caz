@@ -43,7 +43,8 @@ local s_menus = {
 -- Fake devices.
 ADD_FAKE_DEVICE = false
 g_fakeDevice = {
-    getID = function(self) return -1,-1 end
+    getID = function(self) return -1,-1 end,
+    setVibration = function(self, l, r, t) end,
 }
 
 
