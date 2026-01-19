@@ -297,6 +297,11 @@ local gamepadpressed = function(self, js, button)
         dy = dy + 1
     end
 
+    if js:isGamepadDown("rightshoulder") then
+        dx = dx * 6
+        dy = dy * 6
+    end
+
     -- Move the player.
     player.x = utils.clamp(player.x + dx, 0, 15)
     player.y = utils.clamp(player.y + dy, 0, 15)
