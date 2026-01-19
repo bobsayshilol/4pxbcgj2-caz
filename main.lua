@@ -41,7 +41,7 @@ local s_menus = {
 
 
 -- Fake devices.
-ADD_FAKE_DEVICE = true
+ADD_FAKE_DEVICE = false
 g_fakeDevice = {
     getID = function(self) return -1,-1 end
 }
