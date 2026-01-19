@@ -26,7 +26,7 @@ end
 
 
 local update = function(self, dt)
-    if allReady(self.jsStates) then
+    if self.start then
         -- Pass on info to the game.
         g_globals.jsToPlayerID = {}
         for js,state in pairs(self.jsStates) do
@@ -48,6 +48,9 @@ local gamepadpressed = function(self, js, button)
     elseif state.pid ~= nil and button == "b" then
         state.ready = false
         state.pid = nil
+
+    elseif button == "x" and allReady(self.jsStates) then
+        self.start = true
     end
 end
 
@@ -75,7 +78,11 @@ local draw = function(self)
 
     love.graphics.setColor(1, 1, 1, 1)
     drawCentered("A GAME THING", 0.3, scale)
-    drawCentered("Press A to ready up", 0.45, 2)
+    if allReady(self.jsStates) then
+        drawCentered("Press X to start", 0.45, 2)
+    else
+        drawCentered("Press A to ready up", 0.45, 2)
+    end
 
     local y = 0.5
     for js,state in pairs(self.jsStates) do
@@ -104,6 +111,7 @@ local new = function()
         draw = draw,
     }
     menu.jsStates = {}
+    menu.start = false
 
     -- Add existing joysticks.
     for _,js in pairs(love.joystick.getJoysticks()) do
