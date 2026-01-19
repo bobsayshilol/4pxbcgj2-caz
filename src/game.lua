@@ -163,7 +163,7 @@ end
 
 local update = function(self, dt)
     if self.exit then
-        return "menu"
+        return "main"
     elseif self.winner then
         return nil
     end
@@ -231,7 +231,7 @@ local gamepadpressed = function(self, js, button)
                     for tjs,pID in pairs(g_globals.jsToPlayerID) do
                         if pID == tID then
                             if wasKing then
-                                js:setVibration(0, 1, 0.1) -- high buzz
+                                tjs:setVibration(0, 1, 0.1) -- high buzz
                             else
                                 tjs:setVibration(0.5, 0, 0.2) -- low buzz
                             end
@@ -281,6 +281,8 @@ local draw = function(self)
     -- Clear screen.
     love.graphics.clear(0, 0, 0, 1)
 
+    local screenW,screenH = love.graphics.getWidth(), love.graphics.getHeight()
+
     -- Draw the grid.
     local offsetX,offsetY = g_globals.ox, g_globals.oy
     local cellX,cellY = g_globals.cx, g_globals.cy
@@ -296,12 +298,22 @@ local draw = function(self)
     end
 
     -- Draw the player's cursor.
+    local kingsPos = {{screenW/2,0}, {screenW/2,screenH-offsetY}, {0,screenH/2}, {screenW-offsetX,screenH/2}}
     local playerRadius = math.min(cellX, cellY) / 2
     for _,player in ipairs(self.players) do
         if not playerDead(player) then
             love.graphics.setColor(player.col[1], player.col[2], player.col[3], 1)
             love.graphics.circle("line", offsetX+(player.x+0.5)*cellX, offsetY+(player.y+0.5)*cellY, playerRadius)
+            local pos = kingsPos[player.id]
+            love.graphics.print("" .. player.kings, pos[1], pos[2], 0, 2)
         end
+    end
+
+    -- Show game stats.
+    if self.winner then
+        love.graphics.setColor(self.winner.col[1], self.winner.col[2], self.winner.col[3], 1)
+        love.graphics.print("Player " .. self.winner.id .. " wins!", screenW / 2, screenH / 3, 0, 5)
+        love.graphics.print("Press X to return", screenW / 2, screenH * 2/3, 0, 3)
     end
 end
 
