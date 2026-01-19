@@ -209,12 +209,36 @@ local gamepadpressed = function(self, js, button)
         else
             -- Try and place it.
             local selection = player.selection
-            local x,y = player.x,player.y
+            local x,y = player.x,player.y -- HACK: 0-based
+
+            if x+1==selection.x and y+1==selection.y then
+                -- No movement, reset selection
+                selection.selected = false
+                player.selection = nil
+                return
+            end
+
             local target = gridGet(self.grid, x,y)
             local isEmpty = target.typ == PT.Empty
             local canMove = isEmpty and selection:canMove(x, y)
             -- Don't allow taking pieces that are being moved by another player.
             local canTake = (not isEmpty) and (target.owner ~= player) and selection:canTake(x, y) and not target.selected
+
+            -- HACK: these need special casing to check for blocking pieces
+            if (canMove or canTake) and (selection.typ == PT.Bishop or selection.typ == PT.Rook) then
+                local good = true
+                local dx,dy = utils.sign(x+1-selection.x),utils.sign(y+1-selection.y)
+                local m = math.abs(x+1-selection.x)
+                if dx == 0 then
+                    m = math.abs(y+1-selection.y)
+                end
+                for t=1,m do
+                    good = good and gridGet(self.grid, selection.x-1 + t*dx, selection.y-1 + t*dy).typ == PT.Empty
+                end
+                canMove = canMove and good
+                canTake = canTake and good
+            end
+
             if canMove or canTake then
                 -- Reset selection state.
                 selection.selected = false
