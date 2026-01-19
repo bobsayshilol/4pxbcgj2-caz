@@ -21,6 +21,9 @@ local PT = {
             dx,dy = math.abs(dx),math.abs(dy)
             return (dx==0 and dy<2) or (dx<2 and dy==0)
         end,
+        canTake = function(dx,dy)
+            return math.abs(dx) == math.abs(dy)
+        end
     },
     Rook = {
         name="Rook",
@@ -68,8 +71,17 @@ local pieceMake = function(t, o, x,y)
             self.typ.draw(x,y)
         end,
         canMove = function(self, tx,ty)
-            return self.typ.canMove(1+tx-self.x, 1+ty-self.y)
+            local dx,dy = 1+tx-self.x, 1+ty-self.y
+            return self.typ.canMove(dx,dy)
         end,
+        canTake = function(self, tx,ty)
+            local dx,dy = 1+tx-self.x, 1+ty-self.y
+            if self.typ.canTake then
+                return self.typ.canTake(dx,dy)
+            else
+                return self.typ.canMove(dx, dy)
+            end
+        end
     }
     return p
 end
@@ -77,16 +89,20 @@ end
 
 
 -- Player infos.
-local playerMake = function(x, y, col)
+local playerMake = function(id, x, y, col)
     local player = {
+        id = id,
         x = x,
         y = y,
         col = col,
-        jsID = nil, -- nil=not bound
+        kings = 2,
         selection = nil,
         lastPieceType = nil,
     }
     return player
+end
+local playerDead = function(player)
+    return player.kings == 0
 end
 
 
@@ -136,19 +152,49 @@ end
 local gridGet = function(grid, x, y)
     return grid[1+y][1+x]
 end
+local gridTake = function(grid, from, to)
+    grid[from.y][from.x] = pieceMake(PT.Empty, nil, from.x,from.y)
+    grid[to.y][to.x] = pieceMake(from.typ, from.owner, to.x,to.y)
+end
 
 
 
 -- Callbacks.
 
 local update = function(self, dt)
+    if self.exit then
+        return "menu"
+    elseif self.winner then
+        return nil
+    end
     return nil
+end
+
+local checkGameOver = function(self)
+    local alivePlayers = {}
+    for _,player in ipairs(self.players) do
+        if not playerDead(player) then
+            table.insert(alivePlayers, player)
+        end
+    end
+    if #alivePlayers == 1 then
+        self.winner = alivePlayers[1]
+    end
 end
 
 local gamepadpressed = function(self, js, button)
     local playerID = g_globals.jsToPlayerID[js]
     local player = self.players[playerID]
-    if not player then return end
+
+    if (not player) or playerDead(player) then
+        return
+    elseif self.winner == player then
+        -- Only the winner can finish the game.
+        if button == "x" then
+            self.exit = true
+        end
+        return
+    end
 
     if button == "a" then
         -- Action.
@@ -163,10 +209,42 @@ local gamepadpressed = function(self, js, button)
         else
             -- Try and place it.
             local selection = player.selection
-            if selection:canMove(player.x, player.y) then
+            local x,y = player.x,player.y
+            local target = gridGet(self.grid, x,y)
+            local isEmpty = target.typ == PT.Empty
+            local canMove = isEmpty and selection:canMove(x, y)
+            -- Don't allow taking pieces that are being moved by another player.
+            local canTake = (not isEmpty) and (target.owner ~= player) and selection:canTake(x, y) and not target.selected
+            if canMove or canTake then
+                -- Reset selection state.
                 selection.selected = false
                 player.lastPieceType = selection.typ
                 player.selection = nil
+
+                -- Do the move.
+                gridTake(self.grid, selection, target)
+
+                -- Buzz the attackee's controller.
+                local wasKing = target.typ == PT.King
+                if canTake then
+                    local tID = target.owner.id
+                    for tjs,pID in pairs(g_globals.jsToPlayerID) do
+                        if pID == tID then
+                            if wasKing then
+                                js:setVibration(0, 1, 0.1) -- high buzz
+                            else
+                                tjs:setVibration(0.5, 0, 0.2) -- low buzz
+                            end
+                            break
+                        end
+                    end
+                end
+
+                -- Trigger events.
+                if wasKing then
+                    target.owner.kings = target.owner.kings - 1
+                    checkGameOver(self)
+                end
             end
         end
 
@@ -218,9 +296,11 @@ local draw = function(self)
 
     -- Draw the player's cursor.
     local playerRadius = math.min(cellX, cellY) / 2
-    for _,player in pairs(self.players) do
-        love.graphics.setColor(player.col[1], player.col[2], player.col[3], 1)
-        love.graphics.circle("line", offsetX+(player.x+0.5)*cellX, offsetY+(player.y+0.5)*cellY, playerRadius)
+    for _,player in ipairs(self.players) do
+        if not playerDead(player) then
+            love.graphics.setColor(player.col[1], player.col[2], player.col[3], 1)
+            love.graphics.circle("line", offsetX+(player.x+0.5)*cellX, offsetY+(player.y+0.5)*cellY, playerRadius)
+        end
     end
 end
 
@@ -236,13 +316,17 @@ local new = function()
     -- Add players.
     game.players = {}
     local numPlayers = utils.size(g_globals.jsToPlayerID)
-    if numPlayers > 0 then game.players[1] = playerMake(8,0, g_globals.playerCols[1]) end
-    if numPlayers > 1 then game.players[2] = playerMake(8,15, g_globals.playerCols[2]) end
-    if numPlayers > 2 then game.players[3] = playerMake(0,8, g_globals.playerCols[3]) end
-    if numPlayers > 3 then game.players[4] = playerMake(15,8, g_globals.playerCols[4]) end
+    if numPlayers > 0 then game.players[1] = playerMake(1, 8,0, g_globals.playerCols[1]) end
+    if numPlayers > 1 then game.players[2] = playerMake(2, 8,15, g_globals.playerCols[2]) end
+    if numPlayers > 2 then game.players[3] = playerMake(3, 0,8, g_globals.playerCols[3]) end
+    if numPlayers > 3 then game.players[4] = playerMake(4, 15,8, g_globals.playerCols[4]) end
 
     -- Create the grid.
     game.grid = gridMake(game.players)
+
+    -- Game state.
+    game.winner = nil
+    game.exit = false
 
     return game
 end
