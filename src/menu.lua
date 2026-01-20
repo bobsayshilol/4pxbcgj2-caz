@@ -32,7 +32,7 @@ local update = function(self, dt)
         for js,state in pairs(self.jsStates) do
             g_globals.jsToPlayerID[js] = state.pid
         end
-        return "game"
+        return "chess"
     end
     return nil
 end

@@ -1,5 +1,5 @@
 local update = function(self, dt)
-    return "main"
+    return "menu"
 end
 
 local gamepadpressed = function(self, playerID, button)

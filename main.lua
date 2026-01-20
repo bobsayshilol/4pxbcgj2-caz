@@ -34,8 +34,8 @@ end
 local s_menu = nil
 local s_menus = {
     splash = require("src/splash"),
-    main = require("src/main"),
-    game = require("src/game"),
+    menu = require("src/menu"),
+    chess = require("src/chess"),
 }
 
 

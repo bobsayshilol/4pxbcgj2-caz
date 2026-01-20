@@ -174,7 +174,7 @@ end
 
 local update = function(self, dt)
     if self.exit then
-        return "main"
+        return "menu"
     elseif self.winner then
         return nil
     end
