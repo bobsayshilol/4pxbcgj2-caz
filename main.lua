@@ -74,31 +74,29 @@ end
 
 function love.keypressed(key, scancode, isRepeat)
     if ADD_FAKE_DEVICES then
-        if scancode == "e" then
-            love.gamepadpressed(g_fakeDevice, "a")
-        elseif scancode == "q" then
-            love.gamepadpressed(g_fakeDevice, "b")
-        elseif scancode == "w" then
-            love.gamepadpressed(g_fakeDevice, "dpup")
-        elseif scancode == "s" then
-            love.gamepadpressed(g_fakeDevice, "dpdown")
-        elseif scancode == "a" then
-            love.gamepadpressed(g_fakeDevice, "dpleft")
-        elseif scancode == "d" then
-            love.gamepadpressed(g_fakeDevice, "dpright")
+        local m1 = {
+            e = "a",
+            q = "b",
+            x = "x",
+            c = "y",
+            w = "dpup",
+            s = "dpdown",
+            a = "dpleft",
+            d = "dpright",
+        }
+        local m2 = {
+            o = "a",
+            u = "b",
+            i = "dpup",
+            k = "dpdown",
+            j = "dpleft",
+            l = "dpright",
+        }
 
-        elseif scancode == "o" then
-            love.gamepadpressed(g_fakeDevice2, "a")
-        elseif scancode == "u" then
-            love.gamepadpressed(g_fakeDevice2, "b")
-        elseif scancode == "i" then
-            love.gamepadpressed(g_fakeDevice2, "dpup")
-        elseif scancode == "k" then
-            love.gamepadpressed(g_fakeDevice2, "dpdown")
-        elseif scancode == "j" then
-            love.gamepadpressed(g_fakeDevice2, "dpleft")
-        elseif scancode == "l" then
-            love.gamepadpressed(g_fakeDevice2, "dpright")
+        if m1[scancode] then
+            love.gamepadpressed(g_fakeDevice, m1[scancode])
+        elseif m2[scancode] then
+            love.gamepadpressed(g_fakeDevice2, m2[scancode])
         end
     end
 end
