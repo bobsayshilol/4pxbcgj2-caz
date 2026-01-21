@@ -36,6 +36,7 @@ local s_menus = {
     splash = require("src/splash"),
     menu = require("src/menu"),
     chess = require("src/chess"),
+    shooter = require("src/shooter"),
 }
 
 
