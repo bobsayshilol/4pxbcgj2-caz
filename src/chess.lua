@@ -274,16 +274,11 @@ local gamepadpressed = function(self, js, button)
                 -- Buzz the attackee's controller.
                 local wasKing = target.typ == PT.King
                 if canTake then
-                    local tID = target.owner.id
-                    for tjs,pID in pairs(g_globals.jsToPlayerID) do
-                        if pID == tID then
-                            if wasKing then
-                                tjs:setVibration(0, 1, 0.1) -- high buzz
-                            else
-                                tjs:setVibration(0.5, 0, 0.2) -- low buzz
-                            end
-                            break
-                        end
+                    local tjs = g_globals.pidToJs[target.owner.id]
+                    if wasKing then
+                        tjs:setVibration(0, 1, 0.1) -- high buzz
+                    else
+                        tjs:setVibration(0.5, 0, 0.2) -- low buzz
                     end
                 end
 

@@ -29,8 +29,10 @@ local update = function(self, dt)
     if self.start then
         -- Pass on info to the game.
         g_globals.jsToPlayerID = {}
+        g_globals.pidToJs = {}
         for js,state in pairs(self.jsStates) do
             g_globals.jsToPlayerID[js] = state.pid
+            g_globals.pidToJs[state.pid] = js
         end
         return "chess"
     end
