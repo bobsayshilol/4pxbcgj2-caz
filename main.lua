@@ -46,11 +46,13 @@ g_fakeDevice = {
     getID = function(self) return -1,-1 end,
     setVibration = function(self, l, r, t) end,
     isGamepadDown = function(self, k) return false end,
+    getGamepadAxis = function(self, n) return 0 end,
 }
 g_fakeDevice2 = {
     getID = function(self) return -2,-2 end,
     setVibration = function(self, l, r, t) end,
     isGamepadDown = function(self, k) return false end,
+    getGamepadAxis = function(self, n) return 0 end,
 }
 
 
