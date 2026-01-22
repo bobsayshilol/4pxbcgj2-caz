@@ -174,11 +174,6 @@ local draw = function(self)
     -- Render map.
     -- TODO
 
-    -- Render bullets.
-    for _,bullet in pairs(self.bullets) do
-        -- TODO
-    end
-
     -- Render players.
     for pid,player in ipairs(self.players) do
         -- TODO
@@ -186,6 +181,11 @@ local draw = function(self)
         local x,y = player.body:getX(),player.body:getY()
         love.graphics.print("Gun " .. player.id, x,y, player.angle)
         love.graphics.circle("fill", x,y, player.shape:getRadius())
+    end
+
+    -- Render bullets.
+    for _,bullet in pairs(self.bullets) do
+        bullet:draw()
     end
 
     -- Render overlays.
