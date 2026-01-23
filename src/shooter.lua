@@ -9,13 +9,14 @@ local MOVE_SPEED = 200
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
 PHYS_CATEGORY_PLAYER = 2    -- UserData = player
-PHYS_CATEGORY_ENEMY = 3     -- UserData = ???
+PHYS_CATEGORY_ENEMY = 3     -- UserData = enemy
 PHYS_CATEGORY_BULLET = 4    -- UserData = bullet
 
 
 
 -- Weapons.
 local weapons = require("src/weapons")
+local enemyManager = require("src/enemies")
 
 
 
@@ -23,7 +24,7 @@ local weapons = require("src/weapons")
 local playerMake = function(id, x,y, world)
     local body = love.physics.newBody(world, x,y, "dynamic")
     local shape = love.physics.newCircleShape(20)
-    local fixture = love.physics.newFixture(body, shape)
+    local fixture = love.physics.newFixture(body, shape, 100)
 
     -- We'll update the position manually.
     body:setFixedRotation(true)
@@ -76,8 +77,16 @@ local physBeginContact = function(self, fixA, fixB, contact)
         udA.hit = true
     elseif catA == PHYS_CATEGORY_WALL and catB == PHYS_CATEGORY_BULLET then
         udB.hit = true
+
+    elseif catA == PHYS_CATEGORY_BULLET and catB == PHYS_CATEGORY_ENEMY then
+        udA.hit = true
+        udB.health = udB.health - udA.damage
+    elseif catA == PHYS_CATEGORY_ENEMY and catB == PHYS_CATEGORY_BULLET then
+        udB.hit = true
+        udA.health = udA.health - udB.damage
+
     else
-        print("collided:", catA, catB)
+        --print("collided:", catA, catB)
     end
 end
 --local physEndContact = function(fixA, fixB, contact) end
@@ -130,12 +139,6 @@ local update = function(self, dt)
     -- Physics.
     self.world:update(dt)
 
-    -- Spawn new enemies.
-    -- TODO
-
-    -- Move enemies.
-    -- TODO
-
     -- Remove bullets.
     for k,impact in pairs(self.impacts) do
         impact.displaying = impact.displaying - dt
@@ -149,6 +152,9 @@ local update = function(self, dt)
             self.bullets[k] = nil -- apparently this is safe
         end
     end
+
+    -- Enemies.
+    self.exit = not self.enemyManager:update(dt)
 
     return nil
 end
@@ -195,6 +201,9 @@ local draw = function(self)
         love.graphics.print("Gun " .. player.id, x,y, player.angle)
         love.graphics.circle("fill", x,y, player.shape:getRadius())
     end
+
+    -- Render enemies.
+    self.enemyManager:draw()
 
     -- Render bullets.
     for _,bullet in pairs(self.bullets) do
@@ -252,12 +261,19 @@ local new = function()
     if numPlayers > 2 then game.players[3] = playerMake(3, 0.25*sw,0.75*sh, game.world) end
     if numPlayers > 3 then game.players[4] = playerMake(4, 0.75*sw,0.75*sh, game.world) end
 
+    -- Enemies.
+    local spawners = {}
+    table.insert(spawners, { x = 0.75*sw, y = 0.5*sh }) -- TODO: proper spawners
+    game.enemyManager = enemyManager.new(game.world, numPlayers, spawners)
+
     -- Game state.
-    game.enemies = {}
     game.bullets = {}
     game.impacts = {}
     game.revives = 4
     game.exit = false
+
+    -- TODO: pause states between rounds
+    game.enemyManager:newRound()
 
     return game
 end
