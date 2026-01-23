@@ -18,7 +18,7 @@ local WeaponTypes = {
         name = "Minigun",
         bps = 20,
         speed = 2000,
-        damage = 90,
+        damage = 120,
         vib = { 0.6, 1.0, 0.1 },
         duration = 8,
         --love.graphics.newImage("assets/"), -- TODO
@@ -33,7 +33,7 @@ local WeaponTypes = {
         name = "RPG",
         bps = 5,
         speed = 3000,
-        damage = 400,
+        damage = 500,
         vib = { 1.0, 0.4, 0.08 },
         duration = 10,
         --love.graphics.newImage("assets/"), -- TODO

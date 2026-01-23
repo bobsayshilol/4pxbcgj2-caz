@@ -1,7 +1,26 @@
 
-local ENEMY_SPEED = 1
-local THINK_EVERY = 5
-local MAX_ON_SCREEN = 3
+local ENEMY_SPEED = 200
+local THINK_EVERY = 1
+local MAX_ON_SCREEN = 20
+
+
+
+local updateClosestTarget = function(self, enemy)
+    local x,y = enemy.body:getX(),enemy.body:getY()
+    local bestPlayer = nil
+    local bestScore = 1000000000
+
+    for _,player in ipairs(self.players) do
+        local dx,dy = player.body:getX()-x,player.body:getY()-y
+        local dist = dx * dx + dy * dy
+        if dist < bestScore then
+            bestScore = dist
+            bestPlayer = player
+        end
+    end
+
+    enemy.target = bestPlayer
+end
 
 
 
@@ -15,8 +34,6 @@ local trySpawnEnemy = function(self)
 
     -- HACK: just use the spawner for now
     spawner = self.spawners[1]
-    spawner.x = spawner.x + love.math.random()
-    spawner.y = spawner.y + love.math.random()
 
     if not spawner then
         return
@@ -24,7 +41,8 @@ local trySpawnEnemy = function(self)
 
     -- Make the new enemy.
     -- TODO: caching
-    local body = love.physics.newBody(self.world, spawner.x,spawner.y, "dynamic")
+    local x,y = spawner.x + love.math.random(), spawner.y + love.math.random()
+    local body = love.physics.newBody(self.world, x,y, "dynamic")
     local shape = love.physics.newCircleShape(15)
     local fixture = love.physics.newFixture(body, shape, 100)
 
@@ -43,13 +61,14 @@ local trySpawnEnemy = function(self)
         fixture = fixture,
 
         health = self.baseHealth,
-        target = nil, -- TODO
+        target = nil,
+        angle = 0,
     }
-
-    -- TODO
-
     fixture:setUserData(enemy)
     table.insert(self.enemies, enemy)
+
+    -- Set it to follow a target.
+    updateClosestTarget(self, enemy)
     return true
 end
 
@@ -61,17 +80,31 @@ local managerUpdate = function(self, dt)
         self.lastThink = THINK_EVERY
 
         -- Retarget enemies.
-        -- TODO
+        -- TODO: partial updates?
+        for _,enemy in pairs(self.enemies) do
+            updateClosestTarget(self, enemy)
+        end
     end
-
-    -- Update directions.
-    -- TODO
 
     -- Kill off dead enemies.
     for k,enemy in pairs(self.enemies) do
         if enemy.health < 0 then
             enemy.body:destroy()
             self.enemies[k] = nil
+        end
+    end
+
+    -- Movement.
+    for _,enemy in pairs(self.enemies) do
+        local target = enemy.target
+        if target then
+            local x,y = enemy.body:getX(),enemy.body:getY()
+            local dx,dy = target.body:getX()-x,target.body:getY()-y
+            local angle = math.atan2(dy, dx)
+            local vx = ENEMY_SPEED * math.cos(angle)
+            local vy = ENEMY_SPEED * math.sin(angle)
+            enemy.angle = angle
+            enemy.body:setLinearVelocity(vx, vy)
         end
     end
 
@@ -95,17 +128,17 @@ end
 local managerNewRound = function(self)
     -- Setup this round.
     self.round = self.round + 1
-    self.enemiesRemaining = self.numEnemiesPerPlayer * self.numPlayers
+    self.enemiesRemaining = self.enemiesThisRound --* #self.players
 
     -- Increase these for next time round.
-    self.baseHealth = self.baseHealth * 1.1
-    self.numEnemiesPerPlayer = self.numEnemiesPerPlayer + 1
+    self.baseHealth = self.baseHealth * 1.15
+    self.enemiesThisRound = self.enemiesThisRound + 5
 end
 
-local managerMake = function(world, numPlayers, spawners)
+local managerMake = function(world, players, spawners)
     local manager = {
         world = world,
-        numPlayers = numPlayers,
+        players = players,
         spawners = spawners,
 
         enemies = {},
@@ -115,7 +148,7 @@ local managerMake = function(world, numPlayers, spawners)
 
         round = 1,
         baseHealth = 100,
-        numEnemiesPerPlayer = 10,
+        enemiesThisRound = 30,
 
         update = managerUpdate,
         draw = managerDraw,

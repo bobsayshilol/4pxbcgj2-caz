@@ -107,6 +107,8 @@ local update = function(self, dt)
     for pid,player in ipairs(self.players) do
         local js = g_globals.pidToJs[pid]
 
+        local firing = js:isGamepadDown("rightshoulder")
+
         -- Angle.
         local ax,ay = js:getGamepadAxis("rightx"), js:getGamepadAxis("righty")
         if not inDeadzone(ax, ay) then
@@ -116,10 +118,16 @@ local update = function(self, dt)
         -- Movement.
         local vx,vy = js:getGamepadAxis("leftx"), js:getGamepadAxis("lefty")
         if not inDeadzone(vx, vy) then
+            local speed = MOVE_SPEED
+            --if firing then speed = speed * 0.75 end
+
+            local len = math.sqrt(vx * vx + vy * vy)
             local x,y = player.body:getX(),player.body:getY()
-            x = x + MOVE_SPEED * vx * dt
-            y = y + MOVE_SPEED * vy * dt
-            player.body:setPosition(x, y)
+            local vvx = speed * vx / len
+            local vvy = speed * vy / len
+            player.body:setLinearVelocity(vvx, vvy)
+        else
+            player.body:setLinearVelocity(0, 0)
         end
 
         -- Gun.
@@ -130,7 +138,6 @@ local update = function(self, dt)
             gun = player.defaultWeapon
         end
 
-        local firing = js:isGamepadDown("rightshoulder")
         if firing then
             gun:tryShoot(self.bullets, player.body:getX(),player.body:getY(), player.angle)
         end
@@ -154,7 +161,10 @@ local update = function(self, dt)
     end
 
     -- Enemies.
-    self.exit = not self.enemyManager:update(dt)
+    local over = not self.enemyManager:update(dt)
+    if over then
+        self.enemyManager:newRound()
+    end
 
     return nil
 end
@@ -264,7 +274,7 @@ local new = function()
     -- Enemies.
     local spawners = {}
     table.insert(spawners, { x = 0.75*sw, y = 0.5*sh }) -- TODO: proper spawners
-    game.enemyManager = enemyManager.new(game.world, numPlayers, spawners)
+    game.enemyManager = enemyManager.new(game.world, game.players, spawners)
 
     -- Game state.
     game.bullets = {}
