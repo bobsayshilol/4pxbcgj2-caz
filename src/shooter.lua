@@ -44,7 +44,8 @@ local playerMake = function(id, x,y, world)
 
         score = 0,
         health = 100,
-        weapon = weapons.new(world, weapons.types.SMG, id)
+        defaultWeapon = weapons.new(world, weapons.types.SMG, id),
+        powerUpWeapon = nil,
     }
 
     -- Store the player in the ud.
@@ -113,10 +114,16 @@ local update = function(self, dt)
         end
 
         -- Gun.
-        player.weapon:update(dt)
+        local gun = player.powerUpWeapon or player.defaultWeapon
+        local empty = gun:update(dt)
+        if empty then
+            player.powerUpWeapon = nil
+            gun = player.defaultWeapon
+        end
+
         local firing = js:isGamepadDown("rightshoulder")
         if firing then
-            player.weapon:tryShoot(self.bullets, player.body:getX(),player.body:getY(), player.angle)
+            gun:tryShoot(self.bullets, player.body:getX(),player.body:getY(), player.angle)
         end
     end
 
@@ -130,9 +137,15 @@ local update = function(self, dt)
     -- TODO
 
     -- Remove bullets.
+    for k,impact in pairs(self.impacts) do
+        impact.displaying = impact.displaying - dt
+        if impact.displaying < 0 then
+            self.impacts[k] = nil
+        end
+    end
     for k,bullet in pairs(self.bullets) do
         if bullet.hit then
-            bullet.body:destroy()
+            bullet:destroy(self.impacts)
             self.bullets[k] = nil -- apparently this is safe
         end
     end
@@ -187,6 +200,9 @@ local draw = function(self)
     for _,bullet in pairs(self.bullets) do
         bullet:draw()
     end
+    for _,impact in pairs(self.impacts) do
+        impact:draw()
+    end
 
     -- Render overlays.
     -- TODO
@@ -209,8 +225,8 @@ local new = function()
     -- TODO: move this
     game.world = love.physics.newWorld(0, 0, false) -- sleeping bodies breaks collisions for some reason
     game.world:setCallbacks(function(a,b,c) physBeginContact(self,a,b,c) end, nil, nil, nil)
-    -- Border
     if true then
+        -- Border
         local border = love.physics.newBody(game.world, 0,0, "static")
         local addBorder = function(x0,y0, x1,y1)
             local fixture = love.physics.newFixture(border, love.physics.newEdgeShape(x0,y0, x1,y1))
@@ -222,6 +238,10 @@ local new = function()
         addBorder(p,p, sw-p,p)
         addBorder(p,sh-p, sw-p,sh-p)
         addBorder(sw-p,p, sw-p,sh-p)
+
+        -- TODO: more objects
+        local rock = love.physics.newBody(game.world, sw/2,sh/2, "static")
+        love.physics.newFixture(rock, love.physics.newRectangleShape(sw/8,sh/4)):setCategory(PHYS_CATEGORY_WALL)
     end
 
     -- Add players.
@@ -235,6 +255,7 @@ local new = function()
     -- Game state.
     game.enemies = {}
     game.bullets = {}
+    game.impacts = {}
     game.revives = 4
     game.exit = false
 

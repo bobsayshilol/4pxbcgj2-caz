@@ -3,7 +3,43 @@ local WeaponTypes = {
         name = "SMG",
         bps = 10,
         speed = 1500,
-        vib = { 0.2, 0.5, 0.1},
+        vib = { 0.2, 0.4, 0.1 },
+        duration = nil, -- infinite
+        --love.graphics.newImage("assets/"), -- TODO
+        displayFor = 0.8,
+        drawBullet = function(self)
+            local fade = self.displaying / 0.8
+            love.graphics.setColor(1,1,1,fade)
+            love.graphics.circle("fill", self.x,self.y, 5)
+        end,
+    },
+    Minigun = {
+        name = "Minigun",
+        bps = 20,
+        speed = 2000,
+        vib = { 0.6, 1.0, 0.1 },
+        duration = 8,
+        --love.graphics.newImage("assets/"), -- TODO
+        displayFor = 0.8,
+        drawBullet = function(self)
+            local fade = self.displaying / 0.8
+            love.graphics.setColor(1,1,1,fade)
+            love.graphics.circle("fill", self.x,self.y, 8)
+        end,
+    },
+    RPG = {
+        name = "RPG",
+        bps = 5,
+        speed = 3000,
+        vib = { 1.0, 0.4, 0.08 },
+        duration = 10,
+        --love.graphics.newImage("assets/"), -- TODO
+        displayFor = 2.5,
+        drawBullet = function(self)
+            local fade = self.displaying / 2.5
+            love.graphics.setColor(1,1,1,fade)
+            love.graphics.circle("fill", self.x,self.y, 50)
+        end,
     },
 }
 
@@ -14,13 +50,23 @@ local weaponMake = function(world, typ, pid)
         pid = pid,
 
         lastShot = 0,
+        duration = typ.duration,
 
         update = function(self, dt)
             self.lastShot = self.lastShot - dt
+
+            -- Return true if we're still going.
+            local empty = false
+            if self.duration then
+                self.duration = self.duration - dt
+                empty = self.duration < 0
+            end
+            return empty
         end,
 
         tryShoot = function(self, bullets, x,y, angle)
-            if self.lastShot <= 0 then
+            local didShoot = self.lastShot <= 0
+            if didShoot then
                 self.lastShot = 1 / self.typ.bps
 
                 -- Make the new bullet.
@@ -59,6 +105,29 @@ local weaponMake = function(world, typ, pid)
                         --bullet.angle
                         love.graphics.circle("fill", x,y, self.shape:getRadius())
                     end,
+
+                    destroy = function(self, impacts)
+                        local x,y = self.body:getX(),self.body:getY()
+
+                        -- Don't do anything if it's offscreen.
+                        local sw,sh = love.graphics.getWidth(),love.graphics.getHeight()
+                        if x < 0 or y < 0 or x > sw or y > sh then
+                            return
+                        end
+
+                        -- Add an impact effect.
+                        local impact = {
+                            displaying = typ.displayFor,
+                            x = x,
+                            y = y,
+                            draw = typ.drawBullet,
+                        }
+                        table.insert(impacts, impact)
+
+                        -- TODO: sound effect?
+
+                        self.body:destroy()
+                    end,
                 }
                 fixture:setUserData(bullet)
                 table.insert(bullets, bullet)
@@ -67,10 +136,9 @@ local weaponMake = function(world, typ, pid)
                 local js = g_globals.pidToJs[self.pid]
                 local vib = self.typ.vib
                 js:setVibration(vib[1], vib[2], vib[3])
-
-                return true
             end
-            return false
+
+            return didShoot
         end,
     }
     return weapon
