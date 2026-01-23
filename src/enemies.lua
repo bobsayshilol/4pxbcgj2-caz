@@ -91,6 +91,7 @@ local managerUpdate = function(self, dt)
         if enemy.health < 0 then
             enemy.body:destroy()
             self.enemies[k] = nil
+            self.enemiesRemaining = self.enemiesRemaining - 1
         end
     end
 
@@ -111,9 +112,7 @@ local managerUpdate = function(self, dt)
     -- Add new ones.
     local active = utils.size(self.enemies)
     if self.enemiesRemaining > active and active < MAX_ON_SCREEN then
-        if trySpawnEnemy(self) then
-            self.enemiesRemaining = self.enemiesRemaining - 1
-        end
+        trySpawnEnemy(self)
     end
 
     return self.enemiesRemaining > 0
@@ -146,9 +145,9 @@ local managerMake = function(world, players, spawners)
         lastThink = 0,
         enemiesRemaining = 0,
 
-        round = 1,
+        round = 0,
         baseHealth = 100,
-        enemiesThisRound = 30,
+        enemiesThisRound = 25,
 
         update = managerUpdate,
         draw = managerDraw,

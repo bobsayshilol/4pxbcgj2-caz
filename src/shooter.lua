@@ -224,7 +224,20 @@ local draw = function(self)
     end
 
     -- Render overlays.
-    -- TODO
+    love.graphics.setColor(1,1,1,1)
+    love.graphics.print("Round " .. self.enemyManager.round, screenW/2,screenH*1/10)
+    love.graphics.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*2/10)
+
+    local p = 0.1
+    local corners = {
+        {p*screenW, p*screenH},
+        {(1-p)*screenW, p*screenH},
+        {p*screenW, (1-p)*screenH},
+        {(1-p)*screenW, (1-p)*screenH},
+    }
+    for pid,player in ipairs(self.players) do
+        love.graphics.print(pid .. ": " .. player.health, corners[pid][1], corners[pid][2])
+    end
 
     --debugDraw(self.world)
 end
