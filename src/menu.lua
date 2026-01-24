@@ -1,9 +1,27 @@
-local allReady = function(states)
-    local all = true
+
+local s_games = {
+    {
+        menu = "chess",
+        minPlayers = 2,
+        maxPlayers = 4,
+        name = "Multiplayer realtime chess",
+    },
+    {
+        menu = "shooter",
+        minPlayers = 1,
+        maxPlayers = 4,
+        name = "Twin stick shooter",
+    },
+}
+
+
+
+local enoughReady = function(states, game)
+    local num = 0
     for js,state in pairs(states) do
-        all = all and state.ready
+        if state.ready then num = num + 1 end
     end
-    return all and utils.size(states) >= 2
+    return game.minPlayers <= num and num <= game.maxPlayers
 end
 
 local freeID = function(states)
@@ -31,10 +49,12 @@ local update = function(self, dt)
         g_globals.jsToPlayerID = {}
         g_globals.pidToJs = {}
         for js,state in pairs(self.jsStates) do
-            g_globals.jsToPlayerID[js] = state.pid
-            g_globals.pidToJs[state.pid] = js
+            if state.ready then
+                g_globals.jsToPlayerID[js] = state.pid
+                g_globals.pidToJs[state.pid] = js
+            end
         end
-        return "chess"
+        return s_games[self.gameChoice].menu
     end
     return nil
 end
@@ -51,8 +71,11 @@ local gamepadpressed = function(self, js, button)
         state.ready = false
         state.pid = nil
 
-    elseif button == "x" and allReady(self.jsStates) then
+    elseif state.pid == 1 and button == "x" and enoughReady(self.jsStates, s_games[self.gameChoice]) then
         self.start = true
+
+    elseif state.pid == 1 and (button == "dpleft" or button == "dpright") then
+        self.gameChoice = 3 - self.gameChoice -- lazy
     end
 end
 
@@ -79,11 +102,12 @@ local draw = function(self)
     end
 
     love.graphics.setColor(1, 1, 1, 1)
-    drawCentered("A GAME THING", 0.3, scale)
-    if allReady(self.jsStates) then
-        drawCentered("Press X to start", 0.45, 2)
-    else
-        drawCentered("Press A to ready up", 0.45, 2)
+    local game = s_games[self.gameChoice]
+    drawCentered(game.name, 0.3, scale)
+    drawCentered(game.minPlayers .. " to " .. game.maxPlayers .." players", 0.4, 2)
+    drawCentered("Press A to ready up", 0.45, 2)
+    if enoughReady(self.jsStates, game) then
+        drawCentered("Press X to start", 0.5, 2)
     end
 
     local y = 0.5
@@ -114,6 +138,7 @@ local new = function()
     }
     menu.jsStates = {}
     menu.start = false
+    menu.gameChoice = 1
 
     -- Add existing joysticks.
     for _,js in pairs(love.joystick.getJoysticks()) do
