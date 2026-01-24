@@ -1,5 +1,5 @@
 
-local ENEMY_SPEED = 200
+local ENEMY_SPEED = 185
 local THINK_EVERY = 1
 local MAX_ON_SCREEN = 20
 
@@ -130,8 +130,8 @@ local managerNewRound = function(self)
     self.enemiesRemaining = self.enemiesThisRound --* #self.players
 
     -- Increase these for next time round.
-    self.baseHealth = self.baseHealth * 1.15
-    self.enemiesThisRound = self.enemiesThisRound + 5
+    self.baseHealth = self.baseHealth * 1.08
+    self.enemiesThisRound = self.enemiesThisRound + 3
 end
 
 local managerMake = function(world, players, spawners)

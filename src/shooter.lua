@@ -5,6 +5,9 @@ Twin stick shooter, like blops arcade.
 
 local DEADZONE_TOLERANCE = 0.2
 local MOVE_SPEED = 200
+local SCORE_PER_REVIVE = 25000
+
+local PU_DOUBLE_POINTS_TIME = 12
 
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
@@ -62,6 +65,23 @@ local inDeadzone = function(x,y)
     return (math.abs(x) < DEADZONE_TOLERANCE) and (math.abs(y) < DEADZONE_TOLERANCE)
 end
 
+local gameAddScore = function(game, pid, score)
+    if game.powerUps.doublePoints then
+        score = score * 2
+    end
+
+    -- Add to player's score.
+    local player = game.players[pid]
+    player.score = player.score + score
+
+    -- Add an extra revive.
+    game.scoreUntilNextRevive = game.scoreUntilNextRevive - score
+    if game.scoreUntilNextRevive < 0 then
+        game.scoreUntilNextRevive = SCORE_PER_REVIVE
+        game.revives = game.revives + 1
+    end
+end
+
 
 
 -- Physics.
@@ -81,9 +101,15 @@ local physBeginContact = function(self, fixA, fixB, contact)
     elseif catA == PHYS_CATEGORY_BULLET and catB == PHYS_CATEGORY_ENEMY then
         udA.hit = true
         udB.health = udB.health - udA.damage
+
+        local score = udB.health < 0 and 105 or 5
+        gameAddScore(self, udA.pid, score)
     elseif catA == PHYS_CATEGORY_ENEMY and catB == PHYS_CATEGORY_BULLET then
         udB.hit = true
         udA.health = udA.health - udB.damage
+
+        local score = udA.health < 0 and 105 or 5
+        gameAddScore(self, udB.pid, score)
 
     else
         --print("collided:", catA, catB)
@@ -166,6 +192,14 @@ local update = function(self, dt)
         self.enemyManager:newRound()
     end
 
+    -- Power ups.
+    for k,pu in pairs(self.powerUps) do
+        pu.time = pu.time - dt
+        if pu.time < 0 then
+            self.powerUps[k] = nil
+        end
+    end
+
     return nil
 end
 
@@ -225,8 +259,9 @@ local draw = function(self)
 
     -- Render overlays.
     love.graphics.setColor(1,1,1,1)
-    love.graphics.print("Round " .. self.enemyManager.round, screenW/2,screenH*1/10)
-    love.graphics.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*2/10)
+    love.graphics.print("Round " .. self.enemyManager.round, screenW/2,screenH*2/20)
+    love.graphics.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*3/20)
+    love.graphics.print("Revives " .. self.revives, screenW/2,screenH*4/20)
 
     local p = 0.1
     local corners = {
@@ -236,7 +271,7 @@ local draw = function(self)
         {(1-p)*screenW, (1-p)*screenH},
     }
     for pid,player in ipairs(self.players) do
-        love.graphics.print(pid .. ": " .. player.health, corners[pid][1], corners[pid][2])
+        love.graphics.print(pid .. ": " .. player.health .. " " .. player.score, corners[pid][1], corners[pid][2])
     end
 
     --debugDraw(self.world)
@@ -256,7 +291,7 @@ local new = function()
     -- Create the play area.
     -- TODO: move this
     game.world = love.physics.newWorld(0, 0, false) -- sleeping bodies breaks collisions for some reason
-    game.world:setCallbacks(function(a,b,c) physBeginContact(self,a,b,c) end, nil, nil, nil)
+    game.world:setCallbacks(function(a,b,c) physBeginContact(game,a,b,c) end, nil, nil, nil)
     if true then
         -- Border
         local border = love.physics.newBody(game.world, 0,0, "static")
@@ -292,7 +327,9 @@ local new = function()
     -- Game state.
     game.bullets = {}
     game.impacts = {}
+    game.powerUps = {}
     game.revives = 4
+    game.scoreUntilNextRevive = SCORE_PER_REVIVE
     game.exit = false
 
     -- TODO: pause states between rounds

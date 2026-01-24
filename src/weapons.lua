@@ -101,7 +101,7 @@ local weaponMake = function(world, typ, pid)
                     angle = angle,
 
                     damage = typ.damage,
-                    shooter = self.pid,
+                    pid = self.pid,
                     hit = false,
 
                     draw = function(self)
