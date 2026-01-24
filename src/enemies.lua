@@ -2,10 +2,14 @@
 local ENEMY_SPEED = 185
 local THINK_EVERY = 1
 local MAX_ON_SCREEN = 20
+local SPAWN_EVERY = 0.8
+local PER_SPAWNER_EVERY = 1.8
 
 
 
 local updateClosestTarget = function(self, enemy)
+    if enemy.animating then return end
+
     local x,y = enemy.body:getX(),enemy.body:getY()
     local bestPlayer = nil
     local bestScore = 1000000000
@@ -19,24 +23,29 @@ local updateClosestTarget = function(self, enemy)
         end
     end
 
-    enemy.target = bestPlayer
+    enemy.target = bestPlayer.body
 end
 
 
 
 local trySpawnEnemy = function(self)
-    -- Find an empty spawner.
-    local spawner = nil
-    -- TODO: randomise order
-    for _,sp in ipairs(self.spawners) do
-        -- TODO: proper querying
-    end
-
-    -- HACK: just use the spawner for now
-    spawner = self.spawners[1]
-
+    -- Check that the next spawner is empty.
+    local order = self.order
+    local spawner = order[#order]
     if not spawner then
+        -- None left, remake ordering.
+        for i,sp in ipairs(self.spawners) do
+            order[i] = sp
+        end
+        utils.shuffle(order)
         return
+    elseif spawner.nextTime > 0 then
+        -- Waiting for this one to empty.
+        return
+    else
+        -- Take this one.
+        order[#order] = nil
+        spawner.nextTime = PER_SPAWNER_EVERY
     end
 
     -- Make the new enemy.
@@ -50,9 +59,9 @@ local trySpawnEnemy = function(self)
     body:setFixedRotation(true)
     body:setLinearDamping(1)
 
-    -- We're an enemy, and we collide with everything.
+    -- We're an enemy, and we collide with everything (except for walls, temporarily).
     fixture:setCategory(PHYS_CATEGORY_ENEMY)
-    --fixture:setMask() -- TODO: need to disable walls when spawning
+    fixture:setMask(PHYS_CATEGORY_WALL)
 
     -- Spawn the new enemy.
     local enemy = {
@@ -63,12 +72,15 @@ local trySpawnEnemy = function(self)
         health = self.baseHealth,
         target = nil,
         angle = 0,
+
+        animating = false,
     }
     fixture:setUserData(enemy)
     table.insert(self.enemies, enemy)
 
-    -- Set it to follow a target.
-    updateClosestTarget(self, enemy)
+    -- Start walking to the spawner entrance.
+    enemy.animating = true
+    enemy.target = spawner.entrance
     return true
 end
 
@@ -96,23 +108,52 @@ local managerUpdate = function(self, dt)
     end
 
     -- Movement.
+    local speed = ENEMY_SPEED
+    if self.round < 10 then
+        speed = speed * (self.round + 10) / 20
+    end
     for _,enemy in pairs(self.enemies) do
         local target = enemy.target
         if target then
             local x,y = enemy.body:getX(),enemy.body:getY()
-            local dx,dy = target.body:getX()-x,target.body:getY()-y
+            local dx,dy = target:getX()-x,target:getY()-y
             local angle = math.atan2(dy, dx)
-            local vx = ENEMY_SPEED * math.cos(angle)
-            local vy = ENEMY_SPEED * math.sin(angle)
+            local vx = speed * math.cos(angle)
+            local vy = speed * math.sin(angle)
             enemy.angle = angle
             enemy.body:setLinearVelocity(vx, vy)
+
+            -- See if we can finish the entrance "animation".
+            local dist = dx*dx+dy*dy
+            if enemy.animating and dist < 100 then
+                enemy.animating = false
+
+                -- Restore wall collisions.
+                enemy.fixture:setMask()
+
+                -- Find a player to chase.
+                updateClosestTarget(self, enemy)
+            end
         end
     end
 
     -- Add new ones.
     local active = utils.size(self.enemies)
-    if self.enemiesRemaining > active and active < MAX_ON_SCREEN then
-        trySpawnEnemy(self)
+    self.nextSpawn = self.nextSpawn - dt
+    if self.nextSpawn < 0 and self.enemiesRemaining > active and active < MAX_ON_SCREEN then
+        if trySpawnEnemy(self) then
+            -- Scale spawn time up.
+            local every = SPAWN_EVERY
+            if self.round < 5 then
+                every = every / ((self.round + 5) / 10)
+            end
+            self.nextSpawn = every
+        end
+    end
+
+    -- Update spawners.
+    for _,sp in pairs(self.spawners) do
+        sp.nextTime = sp.nextTime - dt
     end
 
     return self.enemiesRemaining > 0
@@ -130,8 +171,8 @@ local managerNewRound = function(self)
     self.enemiesRemaining = self.enemiesThisRound --* #self.players
 
     -- Increase these for next time round.
-    self.baseHealth = self.baseHealth * 1.08
-    self.enemiesThisRound = self.enemiesThisRound + 3
+    self.baseHealth = self.baseHealth * 1.09
+    self.enemiesThisRound = math.min(self.enemiesThisRound + 3, 60)
 end
 
 local managerMake = function(world, players, spawners)
@@ -139,15 +180,17 @@ local managerMake = function(world, players, spawners)
         world = world,
         players = players,
         spawners = spawners,
+        order = {},
 
         enemies = {},
 
         lastThink = 0,
+        nextSpawn = 0,
         enemiesRemaining = 0,
 
         round = 0,
         baseHealth = 100,
-        enemiesThisRound = 25,
+        enemiesThisRound = 10,
 
         update = managerUpdate,
         draw = managerDraw,

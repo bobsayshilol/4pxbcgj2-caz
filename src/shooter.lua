@@ -321,7 +321,30 @@ local new = function()
 
     -- Enemies.
     local spawners = {}
-    table.insert(spawners, { x = 0.75*sw, y = 0.5*sh }) -- TODO: proper spawners
+    if true then
+        -- TODO: part of the map
+        local addSpawner = function(x,y, rot)
+            local spawner = {
+                x = x,
+                y = y,
+                nextTime = 0,
+            }
+            local body = love.physics.newBody(game.world, spawner.x,spawner.y, "static")
+            local fixture = love.physics.newFixture(body, love.physics.newRectangleShape(sw/16,sh/16))
+            fixture:setCategory(PHYS_CATEGORY_WALL)
+            spawner.body = body
+            local rots = { {0,-sh/16}, {sw/16,0}, {0,sh/16}, {-sw/16,0} } -- faces NESW
+            local r = rots[rot]
+            spawner.entrance = love.physics.newBody(game.world, spawner.x+r[1],spawner.y+r[2], "static")
+            table.insert(spawners, spawner)
+        end
+
+        addSpawner(1*sw,0.4*sh, 4)
+        addSpawner(0*sw,0.6*sh, 2)
+        addSpawner(0.3*sw,1*sh, 1)
+        addSpawner(0.7*sw,1*sh, 1)
+        addSpawner(0.6*sw,0*sh, 3)
+    end
     game.enemyManager = enemyManager.new(game.world, game.players, spawners)
 
     -- Game state.
