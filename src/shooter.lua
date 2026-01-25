@@ -23,6 +23,9 @@ local STAGE_OVER = 4
 -- Weapons.
 local weapons = require("src/weapons")
 local enemyManager = require("src/enemies")
+local maps = require("src/map")
+
+
 
 -- Power ups.
 local POWERUP_DISPLAY_FOR = 8
@@ -76,8 +79,8 @@ local s_powerUps = {
 
 
 -- Player infos.
-local playerMake = function(id, x,y, world)
-    local body = love.physics.newBody(world, x,y, "dynamic")
+local playerMake = function(id, pos, world)
+    local body = love.physics.newBody(world, pos[1],pos[2], "dynamic")
     local shape = love.physics.newCircleShape(20)
     local fixture = love.physics.newFixture(body, shape, 100)
 
@@ -490,71 +493,29 @@ local new = function()
         draw = draw,
     }
 
-    local sw,sh = love.graphics.getWidth(),love.graphics.getHeight()
-
     -- Create the play area.
-    -- TODO: move this
     game.world = love.physics.newWorld(0, 0, false) -- sleeping bodies breaks collisions for some reason
     game.world:setCallbacks(
         function(a,b,c) physBeginContact(game,a,b,c) end,
         function(a,b,c) physEndContact(game,a,b,c) end,
         nil, nil
     )
-    if true then
-        -- Border
-        local border = love.physics.newBody(game.world, 0,0, "static")
-        local addBorder = function(x0,y0, x1,y1)
-            local fixture = love.physics.newFixture(border, love.physics.newEdgeShape(x0,y0, x1,y1))
-            -- We're a wall, and we collide with everything.
-            fixture:setCategory(PHYS_CATEGORY_WALL)
-        end
-        local p = 100
-        addBorder(p,p, p,sh-p)
-        addBorder(p,p, sw-p,p)
-        addBorder(p,sh-p, sw-p,sh-p)
-        addBorder(sw-p,p, sw-p,sh-p)
 
-        -- TODO: more objects
-        local rock = love.physics.newBody(game.world, sw/2,sh/2, "static")
-        love.physics.newFixture(rock, love.physics.newRectangleShape(sw/8,sh/4)):setCategory(PHYS_CATEGORY_WALL)
-    end
+    -- Setup the current map.
+    -- TODO: change maps every N levels
+    game.map = maps.new(game.world, maps.map1)
 
     -- Add players.
     game.players = {}
     local numPlayers = utils.size(g_globals.jsToPlayerID)
-    if numPlayers > 0 then game.players[1] = playerMake(1, 0.25*sw,0.25*sh, game.world) end
-    if numPlayers > 1 then game.players[2] = playerMake(2, 0.75*sw,0.25*sh, game.world) end
-    if numPlayers > 2 then game.players[3] = playerMake(3, 0.25*sw,0.75*sh, game.world) end
-    if numPlayers > 3 then game.players[4] = playerMake(4, 0.75*sw,0.75*sh, game.world) end
+    if numPlayers > 0 then game.players[1] = playerMake(1, game.map.spawnPoints[1], game.world) end
+    if numPlayers > 1 then game.players[2] = playerMake(2, game.map.spawnPoints[2], game.world) end
+    if numPlayers > 2 then game.players[3] = playerMake(3, game.map.spawnPoints[3], game.world) end
+    if numPlayers > 3 then game.players[4] = playerMake(4, game.map.spawnPoints[4], game.world) end
 
     -- Enemies.
-    local spawners = {}
-    if true then
-        -- TODO: part of the map
-        local addSpawner = function(x,y, rot)
-            local spawner = {
-                x = x,
-                y = y,
-                nextTime = 0,
-            }
-            local body = love.physics.newBody(game.world, spawner.x,spawner.y, "static")
-            local fixture = love.physics.newFixture(body, love.physics.newRectangleShape(sw/16,sh/16))
-            fixture:setCategory(PHYS_CATEGORY_WALL)
-            spawner.body = body
-            local rots = { {0,-sh/16}, {sw/16,0}, {0,sh/16}, {-sw/16,0} } -- faces NESW
-            local r = rots[rot]
-            spawner.entrance = love.physics.newBody(game.world, spawner.x+r[1],spawner.y+r[2], "static")
-            table.insert(spawners, spawner)
-        end
-
-        addSpawner(1*sw,0.4*sh, 4)
-        addSpawner(0*sw,0.6*sh, 2)
-        addSpawner(0.3*sw,1*sh, 1)
-        addSpawner(0.7*sw,1*sh, 1)
-        addSpawner(0.6*sw,0*sh, 3)
-    end
     local onKill = function(x,y) gameEnemyKilled(game, x,y) end
-    game.enemyManager = enemyManager.new(game.world, game.players, spawners, onKill)
+    game.enemyManager = enemyManager.new(game.world, game.players, game.map.spawners, onKill)
 
     -- Game state.
     game.bullets = {}
