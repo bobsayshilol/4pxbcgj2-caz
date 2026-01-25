@@ -38,13 +38,21 @@ local s_powerUps = {
     {
         text = "nuke",
         apply = function(game, player)
-            game.powerUps.nuke = { time = 0 }
+            game.enemyManager:killAll()
         end,
     },
     {
         text = "revive",
         apply = function(game, player)
-            game.powerUps.revive = { time = 0 }
+            game.revives = game.revives + 1
+        end,
+    },
+    {
+        text = "heal",
+        apply = function(game, player)
+            for _,p in pairs(game.players) do
+                p.health = 100
+            end
         end,
     },
     {
@@ -87,6 +95,7 @@ local playerMake = function(id, x,y, world)
         angle = 0,
 
         score = 0,
+        kills = 0,
         health = 100,
         defaultWeapon = weapons.new(world, weapons.types.SMG, id),
         powerUpWeapon = nil,
@@ -105,13 +114,12 @@ local inDeadzone = function(x,y)
     return (math.abs(x) < DEADZONE_TOLERANCE) and (math.abs(y) < DEADZONE_TOLERANCE)
 end
 
-local gameAddScore = function(game, pid, score)
+local gameAddScore = function(game, player, score)
     if game.powerUps.doublePoints then
         score = score * 2
     end
 
     -- Add to player's score.
-    local player = game.players[pid]
     player.score = player.score + score
 
     -- Add an extra revive.
@@ -184,8 +192,13 @@ local physBeginContact = function(self, fixA, fixB, contact)
             udA.health = udA.health - udB.damage
         end
 
-        local score = udA.health < 0 and 105 or 5
-        gameAddScore(self, udB.pid, score)
+        local player = self.players[udB.pid]
+        local dead = udA.health < 0
+        gameAddScore(self, player, dead and 105 or 5)
+
+        if dead then
+            player.kills = player.kills + 1
+        end
 
     elseif catA == PHYS_CATEGORY_PLAYER and catB == PHYS_CATEGORY_PICKUP then
         udB.player = udA
@@ -286,8 +299,6 @@ local update = function(self, dt)
 
     -- Power ups.
     local pups = self.powerUps
-    if pups.nuke then self.enemyManager:killAll() end
-    if pups.revive then self.revives = self.revives + 1 end
     for k,pu in pairs(pups) do
         pu.time = pu.time - dt
         if pu.time < 0 then
@@ -371,7 +382,7 @@ local draw = function(self)
         {(1-p)*screenW, (1-p)*screenH},
     }
     for pid,player in ipairs(self.players) do
-        love.graphics.print(pid .. ": " .. player.health .. " " .. player.score, corners[pid][1], corners[pid][2])
+        love.graphics.print(pid .. ": " .. player.health .. " " .. player.kills .. " " .. player.score, corners[pid][1], corners[pid][2])
     end
 
     --debugDraw(self.world)
