@@ -78,9 +78,9 @@ local weaponMake = function(world, typ, pid)
                 local shape = love.physics.newCircleShape(3)
                 local fixture = love.physics.newFixture(body, shape, 0)
 
-                -- We're a bullet, and we collide with everything except for bullets and players.
+                -- We're a bullet, and we collide with everything except for bullets and players and holes.
                 fixture:setCategory(PHYS_CATEGORY_BULLET)
-                fixture:setMask(PHYS_CATEGORY_PLAYER, PHYS_CATEGORY_BULLET)
+                fixture:setMask(PHYS_CATEGORY_HOLE, PHYS_CATEGORY_PLAYER, PHYS_CATEGORY_BULLET)
 
                 -- Get it moving.
                 local vx,vy = self.typ.speed*math.cos(angle),self.typ.speed*math.sin(angle)

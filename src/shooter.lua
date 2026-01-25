@@ -9,10 +9,11 @@ local SCORE_PER_REVIVE = 25000
 
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
-PHYS_CATEGORY_PLAYER = 2    -- UserData = player
-PHYS_CATEGORY_ENEMY = 3     -- UserData = enemy
-PHYS_CATEGORY_BULLET = 4    -- UserData = bullet
-PHYS_CATEGORY_PICKUP = 5    -- UserData = type
+PHYS_CATEGORY_HOLE = 2      -- UserData = nil
+PHYS_CATEGORY_PLAYER = 3    -- UserData = player
+PHYS_CATEGORY_ENEMY = 4     -- UserData = enemy
+PHYS_CATEGORY_BULLET = 5    -- UserData = bullet
+PHYS_CATEGORY_PICKUP = 6    -- UserData = type
 
 local STAGE_BREATHER = 1
 local STAGE_FIGHTING = 2
@@ -154,7 +155,7 @@ local gameEnemyKilled = function(game, enemy)
 
         -- We're a pickup, and we collide with players only.
         fixture:setCategory(PHYS_CATEGORY_PICKUP)
-        fixture:setMask(PHYS_CATEGORY_WALL, PHYS_CATEGORY_ENEMY, PHYS_CATEGORY_BULLET, PHYS_CATEGORY_PICKUP)
+        fixture:setMask(PHYS_CATEGORY_WALL, PHYS_CATEGORY_HOLE, PHYS_CATEGORY_ENEMY, PHYS_CATEGORY_BULLET, PHYS_CATEGORY_PICKUP)
 
         -- We're only for detection, no physics.
         fixture:setSensor(true)

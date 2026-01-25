@@ -15,6 +15,7 @@ local addSpawner = function(self, world, x,y, w,h, rot)
     local fixture = love.physics.newFixture(body, love.physics.newRectangleShape(w,h))
     fixture:setCategory(PHYS_CATEGORY_WALL)
     spawner.body = body
+
     local rots = { {0,-h}, {w,0}, {0,h}, {-w,0} } -- faces NESW
     local r = rots[rot]
     spawner.entrance = love.physics.newBody(world, spawner.x+r[1],spawner.y+r[2], "static")
@@ -38,10 +39,14 @@ local map1 = function(self, world, sw,sh)
     addSpawner(self, world, 0.7*sw,1*sh, sw/16,sh/16, ROT_NORTH)
     addSpawner(self, world, 0.6*sw,0*sh, sw/16,sh/16, ROT_SOUTH)
 
-    -- Add some rocks.
+    -- Add some scenery.
     do
-        local rock = love.physics.newBody(world, sw/2,sh/2, "static")
-        love.physics.newFixture(rock, love.physics.newRectangleShape(sw/8,sh/4)):setCategory(PHYS_CATEGORY_WALL)
+        local rock = love.physics.newBody(world, sw/3,sh/2, "static")
+        love.physics.newFixture(rock, love.physics.newRectangleShape(sw/10,sh/5)):setCategory(PHYS_CATEGORY_WALL)
+    end
+    do
+        local hole = love.physics.newBody(world, sw*2/3,sh/2, "static")
+        love.physics.newFixture(hole, love.physics.newRectangleShape(sw/10,sh/5)):setCategory(PHYS_CATEGORY_HOLE)
     end
 end
 
