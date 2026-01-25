@@ -47,6 +47,9 @@ local s_powerUps = {
         text = "nuke",
         apply = function(game, player)
             game.enemyManager:killAll()
+            for _,p in ipairs(game.players) do
+                game:addScore(p, 500)
+            end
         end,
     },
     {
@@ -58,7 +61,7 @@ local s_powerUps = {
     {
         text = "heal",
         apply = function(game, player)
-            for _,p in pairs(game.players) do
+            for _,p in ipairs(game.players) do
                 p.health = 100
             end
         end,
@@ -492,6 +495,8 @@ local new = function()
         update = update,
         gamepadpressed = gamepadpressed,
         draw = draw,
+
+        addScore = gameAddScore,
     }
 
     -- Create the play area.
