@@ -278,7 +278,7 @@ local update = function(self, dt)
         local isDead = player.health <= 0
         local js = g_globals.pidToJs[pid]
 
-        local firing = js:isGamepadDown("rightshoulder")
+        local firing = js:isGamepadDown("rightshoulder") and not isDead
 
         -- Angle.
         local ax,ay = js:getGamepadAxis("rightx"), js:getGamepadAxis("righty")

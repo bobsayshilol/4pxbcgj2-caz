@@ -149,8 +149,6 @@ local managerUpdate = function(self, dt)
                 -- Find a player to chase.
                 updateClosestTarget(self, enemy)
             end
-        else
-            enemy.body:setLinearVelocity(0,0)
         end
 
         -- Attack.
