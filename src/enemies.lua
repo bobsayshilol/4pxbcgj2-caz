@@ -1,5 +1,8 @@
 
 local ENEMY_SPEED = 185
+local ENEMY_ATTACK_EVERY = 0.5
+local ENEMY_DAMAGE = 10
+
 local THINK_EVERY = 1
 local MAX_ON_SCREEN = 20
 local SPAWN_EVERY = 0.8
@@ -15,15 +18,17 @@ local updateClosestTarget = function(self, enemy)
     local bestScore = 1000000000
 
     for _,player in ipairs(self.players) do
-        local dx,dy = player.body:getX()-x,player.body:getY()-y
-        local dist = dx * dx + dy * dy
-        if dist < bestScore then
-            bestScore = dist
-            bestPlayer = player
+        if player.health > 0 then
+            local dx,dy = player.body:getX()-x,player.body:getY()-y
+            local dist = dx * dx + dy * dy
+            if dist < bestScore then
+                bestScore = dist
+                bestPlayer = player
+            end
         end
     end
 
-    enemy.target = bestPlayer.body
+    enemy.target = bestPlayer and bestPlayer.body
 end
 
 
@@ -73,6 +78,9 @@ local trySpawnEnemy = function(self)
         target = nil,
         angle = 0,
 
+        damaging = {},
+        nextHit = 0,
+
         animating = false,
     }
     fixture:setUserData(enemy)
@@ -121,13 +129,14 @@ local managerUpdate = function(self, dt)
     for _,enemy in pairs(self.enemies) do
         local target = enemy.target
         if target then
-            local x,y = enemy.body:getX(),enemy.body:getY()
+            local b = enemy.body
+            local x,y = b:getX(),b:getY()
             local dx,dy = target:getX()-x,target:getY()-y
             local angle = math.atan2(dy, dx)
             local vx = speed * math.cos(angle)
             local vy = speed * math.sin(angle)
             enemy.angle = angle
-            enemy.body:setLinearVelocity(vx, vy)
+            b:setLinearVelocity(vx, vy)
 
             -- See if we can finish the entrance "animation".
             local dist = dx*dx+dy*dy
@@ -139,6 +148,18 @@ local managerUpdate = function(self, dt)
 
                 -- Find a player to chase.
                 updateClosestTarget(self, enemy)
+            end
+        else
+            enemy.body:setLinearVelocity(0,0)
+        end
+
+        -- Attack.
+        enemy.nextHit = enemy.nextHit - dt
+        if enemy.nextHit < 0 and utils.size(enemy.damaging) > 0 then
+            enemy.nextHit = ENEMY_ATTACK_EVERY
+            -- TODO: attack effect
+            for p,t in pairs(enemy.damaging) do
+                p.health = p.health - ENEMY_DAMAGE
             end
         end
     end

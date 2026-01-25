@@ -14,6 +14,10 @@ PHYS_CATEGORY_ENEMY = 3     -- UserData = enemy
 PHYS_CATEGORY_BULLET = 4    -- UserData = bullet
 PHYS_CATEGORY_PICKUP = 5    -- UserData = type
 
+local STAGE_BREATHER = 1
+local STAGE_FIGHTING = 2
+local STAGE_DEAD = 3
+local STAGE_OVER = 4
 
 
 -- Weapons.
@@ -178,22 +182,23 @@ local physBeginContact = function(self, fixA, fixB, contact)
         fixA,fixB,catA,catB = fixB,fixA,catB,catA
     end
 
-    local udA = fixA:getUserData()
-    local udB = fixB:getUserData()
-
     if catA == PHYS_CATEGORY_WALL and catB == PHYS_CATEGORY_BULLET then
-        udB.hit = true
+        local bullet = fixB:getUserData()
+        bullet.hit = true
 
     elseif catA == PHYS_CATEGORY_ENEMY and catB == PHYS_CATEGORY_BULLET then
-        udB.hit = true
+        local enemy = fixA:getUserData()
+        local bullet = fixB:getUserData()
+
+        bullet.hit = true
         if self.powerUps.instakill then
-            udA.health = -1
+            enemy.health = -1
         else
-            udA.health = udA.health - udB.damage
+            enemy.health = enemy.health - bullet.damage
         end
 
-        local player = self.players[udB.pid]
-        local dead = udA.health < 0
+        local player = self.players[bullet.pid]
+        local dead = enemy.health < 0
         gameAddScore(self, player, dead and 105 or 5)
 
         if dead then
@@ -201,15 +206,40 @@ local physBeginContact = function(self, fixA, fixB, contact)
         end
 
     elseif catA == PHYS_CATEGORY_PLAYER and catB == PHYS_CATEGORY_PICKUP then
-        udB.player = udA
+        local player = fixA:getUserData()
+        local pickup = fixB:getUserData()
+
+        pickup.player = player
+
+    elseif catA == PHYS_CATEGORY_PLAYER and catB == PHYS_CATEGORY_ENEMY then
+        local player = fixA:getUserData()
+        local enemy = fixB:getUserData()
+
+        enemy.damaging[player] = true
 
     else
         --print("collided:", catA, catB)
     end
 end
---local physEndContact = function(fixA, fixB, contact) end
---local physPreSolve = function(fixA, fixB, contact) end
---local physPostSolve = function(fixA, fixB, contact, normalimpulse, tangentimpulse) end
+
+local physEndContact = function(self, fixA, fixB, contact)
+    -- Note: can't modify world here, so need to remove stuff in the update loop.
+
+    local catA = fixA:getCategory()
+    local catB = fixB:getCategory()
+    -- Make sure catA<=catB so we only need to do half of the checks.
+    if catA > catB then
+        fixA,fixB,catA,catB = fixB,fixA,catB,catA
+    end
+
+    if catA == PHYS_CATEGORY_PLAYER and catB == PHYS_CATEGORY_ENEMY then
+        local player = fixA:getUserData()
+        local enemy = fixB:getUserData()
+
+        enemy.damaging[player] = nil
+
+    end
+end
 
 
 
@@ -217,12 +247,35 @@ end
 
 local update = function(self, dt)
     -- Check for game over.
-    if self.exit then
-        return "menu"
+    local fighting = false
+    do
+        local stage = self.stage
+        self.stageTimer = self.stageTimer + dt
+        if stage == STAGE_BREATHER then
+            if self.stageTimer > 5 then
+                self.stageTimer = 0
+                self.enemyManager:newRound()
+                self.stage = STAGE_FIGHTING
+            end
+
+        elseif stage == STAGE_DEAD then
+            if self.stageTimer > 10 then
+                self.stageTimer = 0
+                self.stage = STAGE_OVER
+            end
+
+        elseif stage == STAGE_OVER then
+            return "menu"
+
+        else
+            fighting = true
+
+        end
     end
 
     -- Input.
     for pid,player in ipairs(self.players) do
+        local isDead = player.health <= 0
         local js = g_globals.pidToJs[pid]
 
         local firing = js:isGamepadDown("rightshoulder")
@@ -235,7 +288,7 @@ local update = function(self, dt)
 
         -- Movement.
         local vx,vy = js:getGamepadAxis("leftx"), js:getGamepadAxis("lefty")
-        if not inDeadzone(vx, vy) then
+        if not inDeadzone(vx, vy) and not isDead then
             local speed = MOVE_SPEED
             --if firing then speed = speed * 0.75 end
 
@@ -279,9 +332,12 @@ local update = function(self, dt)
     end
 
     -- Enemies.
-    local over = not self.enemyManager:update(dt)
-    if over then
-        self.enemyManager:newRound()
+    if fighting then
+        local over = not self.enemyManager:update(dt)
+        if over then
+            self.stage = STAGE_BREATHER
+            self.stageTimer = 0
+        end
     end
 
     -- Pickups.
@@ -306,6 +362,22 @@ local update = function(self, dt)
         end
     end
 
+    -- Check for player deaths.
+    if fighting then
+        local allDead = self.revives == 0
+        for _,player in ipairs(self.players) do
+            if player.health <= 0 then
+                player.health = 0
+            else
+                allDead = false
+            end
+        end
+        if allDead then
+            self.stage = STAGE_DEAD
+            self.stageTimer = 0
+        end
+    end
+
     return nil
 end
 
@@ -314,7 +386,10 @@ local gamepadpressed = function(self, js, button)
     local player = self.players[playerID]
     if not player then return end
 
-    -- TODO
+    if button == "leftshoulder" and player.health <= 0 and self.revives > 0 then
+        self.revives = self.revives - 1
+        player.health = 100
+    end
 end
 
 local debugDraw = function(world)
@@ -385,6 +460,24 @@ local draw = function(self)
         love.graphics.print(pid .. ": " .. player.health .. " " .. player.kills .. " " .. player.score, corners[pid][1], corners[pid][2])
     end
 
+    do
+        local stage = self.stage
+        if stage == STAGE_FIGHTING and self.stageTimer < 3 then
+            love.graphics.print("ROUND " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
+        elseif stage == STAGE_DEAD then
+            love.graphics.print("GAME OVER", screenW/2,screenH/4, 0, 5)
+            local y = screenH/3
+            love.graphics.print("Player | Kills | Score", screenW/2,y, 0, 3)
+            y = y + 50
+            for pid,player in ipairs(self.players) do
+                love.graphics.print(pid .. " | " .. player.kills .. " | " .. player.score, screenW/2,y, 0, 3)
+                y = y + 50
+            end
+            y = y + 50
+            love.graphics.print("Made it to round " .. self.enemyManager.round, screenW/2,y, 0, 2)
+        end
+    end
+
     --debugDraw(self.world)
 end
 
@@ -402,7 +495,11 @@ local new = function()
     -- Create the play area.
     -- TODO: move this
     game.world = love.physics.newWorld(0, 0, false) -- sleeping bodies breaks collisions for some reason
-    game.world:setCallbacks(function(a,b,c) physBeginContact(game,a,b,c) end, nil, nil, nil)
+    game.world:setCallbacks(
+        function(a,b,c) physBeginContact(game,a,b,c) end,
+        function(a,b,c) physEndContact(game,a,b,c) end,
+        nil, nil
+    )
     if true then
         -- Border
         local border = love.physics.newBody(game.world, 0,0, "static")
@@ -464,12 +561,10 @@ local new = function()
     game.impacts = {}
     game.powerUps = {}
     game.pickups = {}
-    game.revives = 4
+    game.revives = numPlayers
     game.scoreUntilNextRevive = SCORE_PER_REVIVE
-    game.exit = false
-
-    -- TODO: pause states between rounds
-    game.enemyManager:newRound()
+    game.stage = STAGE_BREATHER
+    game.stageTimer = 0
 
     return game
 end
