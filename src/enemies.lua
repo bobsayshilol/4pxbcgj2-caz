@@ -101,9 +101,15 @@ local managerUpdate = function(self, dt)
     -- Kill off dead enemies.
     for k,enemy in pairs(self.enemies) do
         if enemy.health < 0 then
-            enemy.body:destroy()
+            -- Take the enemy out of our collections.
             self.enemies[k] = nil
             self.enemiesRemaining = self.enemiesRemaining - 1
+
+            -- Trigger the callback.
+            self.onKill(enemy)
+
+            -- Finally destroy the enemy.
+            enemy.body:destroy()
         end
     end
 
@@ -175,10 +181,26 @@ local managerNewRound = function(self)
     self.enemiesThisRound = math.min(self.enemiesThisRound + 3, 60)
 end
 
-local managerMake = function(world, players, spawners)
+local managerKillAll = function(self)
+    -- TODO: duplicates update loop
+    for k,enemy in pairs(self.enemies) do
+        -- Take the enemy out of our collections.
+        self.enemies[k] = nil
+        self.enemiesRemaining = self.enemiesRemaining - 1
+
+        -- Trigger the callback.
+        self.onKill(enemy)
+
+        -- Finally destroy the enemy.
+        enemy.body:destroy()
+    end
+end
+
+local managerMake = function(world, players, spawners, onKill)
     local manager = {
         world = world,
         players = players,
+        onKill = onKill,
         spawners = spawners,
         order = {},
 
@@ -195,6 +217,7 @@ local managerMake = function(world, players, spawners)
         update = managerUpdate,
         draw = managerDraw,
         newRound = managerNewRound,
+        killAll = managerKillAll,
     }
     return manager
 end

@@ -7,19 +7,59 @@ local DEADZONE_TOLERANCE = 0.2
 local MOVE_SPEED = 200
 local SCORE_PER_REVIVE = 25000
 
-local PU_DOUBLE_POINTS_TIME = 12
-
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
 PHYS_CATEGORY_PLAYER = 2    -- UserData = player
 PHYS_CATEGORY_ENEMY = 3     -- UserData = enemy
 PHYS_CATEGORY_BULLET = 4    -- UserData = bullet
+PHYS_CATEGORY_PICKUP = 5    -- UserData = type
 
 
 
 -- Weapons.
 local weapons = require("src/weapons")
 local enemyManager = require("src/enemies")
+
+-- Power ups.
+local POWERUP_DISPLAY_FOR = 8
+local s_powerUps = {
+    {
+        text = "double points", -- TODO: sprites
+        apply = function(game, player)
+            game.powerUps.doublePoints = { time = 12 }
+        end,
+    },
+    {
+        text = "instakill",
+        apply = function(game, player)
+            game.powerUps.instakill = { time = 10 }
+        end,
+    },
+    {
+        text = "nuke",
+        apply = function(game, player)
+            game.powerUps.nuke = { time = 0 }
+        end,
+    },
+    {
+        text = "revive",
+        apply = function(game, player)
+            game.powerUps.revive = { time = 0 }
+        end,
+    },
+    {
+        text = "minigun",
+        apply = function(game, player)
+            player.powerUpWeapon = weapons.new(game.world, weapons.types.Minigun, player.id)
+        end,
+    },
+    {
+        text = "rpg",
+        apply = function(game, player)
+            player.powerUpWeapon = weapons.new(game.world, weapons.types.RPG, player.id)
+        end,
+    },
+}
 
 
 
@@ -82,6 +122,41 @@ local gameAddScore = function(game, pid, score)
     end
 end
 
+local gameEnemyKilled = function(game, enemy)
+    -- Last enemy always drops something.
+    local lastKill = game.enemyManager.enemiesRemaining == 0
+
+    -- Random chance to drop something.
+    local oneInN = 50
+    if lastKill or love.math.random(oneInN - 1) == 1 then
+        -- Pick a random powerup.
+        local idx = love.math.random(#s_powerUps)
+        local powerUp = s_powerUps[idx]
+
+        -- Spawn it.
+        local body = love.physics.newBody(game.world, enemy.body:getX(),enemy.body:getY(), "static")
+        local fixture = love.physics.newFixture(body, love.physics.newCircleShape(20))
+
+        -- We're a pickup, and we collide with players only.
+        fixture:setCategory(PHYS_CATEGORY_PICKUP)
+        fixture:setMask(PHYS_CATEGORY_WALL, PHYS_CATEGORY_ENEMY, PHYS_CATEGORY_BULLET, PHYS_CATEGORY_PICKUP)
+
+        -- We're only for detection, no physics.
+        fixture:setSensor(true)
+
+        local pickup = {
+            powerUp = powerUp,
+
+            body = body,
+
+            time = POWERUP_DISPLAY_FOR,
+            player = nil, -- set when player picks this up
+        }
+        table.insert(game.pickups, pickup)
+        fixture:setUserData(pickup)
+    end
+end
+
 
 
 -- Physics.
@@ -90,26 +165,30 @@ local physBeginContact = function(self, fixA, fixB, contact)
 
     local catA = fixA:getCategory()
     local catB = fixB:getCategory()
+    -- Make sure catA<=catB so we only need to do half of the checks.
+    if catA > catB then
+        fixA,fixB,catA,catB = fixB,fixA,catB,catA
+    end
+
     local udA = fixA:getUserData()
     local udB = fixB:getUserData()
 
-    if catA == PHYS_CATEGORY_BULLET and catB == PHYS_CATEGORY_WALL then
-        udA.hit = true
-    elseif catA == PHYS_CATEGORY_WALL and catB == PHYS_CATEGORY_BULLET then
+    if catA == PHYS_CATEGORY_WALL and catB == PHYS_CATEGORY_BULLET then
         udB.hit = true
 
-    elseif catA == PHYS_CATEGORY_BULLET and catB == PHYS_CATEGORY_ENEMY then
-        udA.hit = true
-        udB.health = udB.health - udA.damage
-
-        local score = udB.health < 0 and 105 or 5
-        gameAddScore(self, udA.pid, score)
     elseif catA == PHYS_CATEGORY_ENEMY and catB == PHYS_CATEGORY_BULLET then
         udB.hit = true
-        udA.health = udA.health - udB.damage
+        if self.powerUps.instakill then
+            udA.health = -1
+        else
+            udA.health = udA.health - udB.damage
+        end
 
         local score = udA.health < 0 and 105 or 5
         gameAddScore(self, udB.pid, score)
+
+    elseif catA == PHYS_CATEGORY_PLAYER and catB == PHYS_CATEGORY_PICKUP then
+        udB.player = udA
 
     else
         --print("collided:", catA, catB)
@@ -192,11 +271,27 @@ local update = function(self, dt)
         self.enemyManager:newRound()
     end
 
+    -- Pickups.
+    for k,pu in pairs(self.pickups) do
+        pu.time = pu.time - dt
+        local player = pu.player
+        if player then
+            pu.powerUp.apply(self, player)
+        end
+        if player or pu.time < 0 then
+            pu.body:destroy()
+            self.pickups[k] = nil
+        end
+    end
+
     -- Power ups.
-    for k,pu in pairs(self.powerUps) do
+    local pups = self.powerUps
+    if pups.nuke then self.enemyManager:killAll() end
+    if pups.revive then self.revives = self.revives + 1 end
+    for k,pu in pairs(pups) do
         pu.time = pu.time - dt
         if pu.time < 0 then
-            self.powerUps[k] = nil
+            pups[k] = nil
         end
     end
 
@@ -244,6 +339,11 @@ local draw = function(self)
         local x,y = player.body:getX(),player.body:getY()
         love.graphics.print("Gun " .. player.id, x,y, player.angle)
         love.graphics.circle("fill", x,y, player.shape:getRadius())
+    end
+
+    -- Render pickups.
+    for _,pickup in pairs(self.pickups) do
+        love.graphics.print(pickup.powerUp.text, pickup.body:getX(),pickup.body:getY())
     end
 
     -- Render enemies.
@@ -345,12 +445,14 @@ local new = function()
         addSpawner(0.7*sw,1*sh, 1)
         addSpawner(0.6*sw,0*sh, 3)
     end
-    game.enemyManager = enemyManager.new(game.world, game.players, spawners)
+    local onKill = function(x,y) gameEnemyKilled(game, x,y) end
+    game.enemyManager = enemyManager.new(game.world, game.players, spawners, onKill)
 
     -- Game state.
     game.bullets = {}
     game.impacts = {}
     game.powerUps = {}
+    game.pickups = {}
     game.revives = 4
     game.scoreUntilNextRevive = SCORE_PER_REVIVE
     game.exit = false
