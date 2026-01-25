@@ -436,7 +436,7 @@ local draw = function(self)
 
     -- Render pickups.
     for _,pickup in pairs(self.pickups) do
-        love.graphics.print(pickup.powerUp.text, pickup.body:getX(),pickup.body:getY())
+        love.graphics.print(pickup.powerUp.text .. " " .. math.floor(pickup.time), pickup.body:getX(),pickup.body:getY())
     end
 
     -- Render enemies.
