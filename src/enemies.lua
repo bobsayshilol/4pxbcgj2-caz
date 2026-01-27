@@ -1,4 +1,6 @@
 
+local navmesh = require("src/navmesh")
+
 local ENEMY_SPEED = 185
 local ENEMY_ATTACK_EVERY = 0.5
 local ENEMY_DAMAGE = 10
@@ -121,6 +123,10 @@ local managerUpdate = function(self, dt)
         end
     end
 
+    -- Build a lookup for where the closest player is.
+    -- TODO: cache this in the thinker
+    local playerLookup = navmesh.buildLookup(self.navMesh, self.players)
+
     -- Movement.
     local speed = ENEMY_SPEED
     if self.round < 10 then
@@ -131,7 +137,15 @@ local managerUpdate = function(self, dt)
         if target then
             local b = enemy.body
             local x,y = b:getX(),b:getY()
-            local dx,dy = target:getX()-x,target:getY()-y
+            local tx,ty = target:getX(),target:getY()
+            local dx,dy = tx-x,ty-y
+
+            -- Query the navmesh on which way to go.
+            -- TODO: refactor all this, target or animating not needed
+            if not enemy.animating then
+                dx,dy = navmesh.query(self.navMesh, playerLookup, self.players, x,y)
+            end
+
             local angle = math.atan2(dy, dx)
             local vx = speed * math.cos(angle)
             local vy = speed * math.sin(angle)
@@ -215,10 +229,11 @@ local managerKillAll = function(self)
     end
 end
 
-local managerMake = function(world, players, spawners, onKill)
+local managerMake = function(world, players, spawners, navMesh, onKill)
     local manager = {
         world = world,
         players = players,
+        navMesh = navMesh,
         onKill = onKill,
         spawners = spawners,
         order = {},

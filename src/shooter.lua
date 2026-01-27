@@ -509,7 +509,7 @@ local new = function()
 
     -- Setup the current map.
     -- TODO: change maps every N levels
-    game.map = maps.new(game.world, maps.map1)
+    game.map = maps.new(game.world, maps.map2)
 
     -- Add players.
     game.players = {}
@@ -521,7 +521,7 @@ local new = function()
 
     -- Enemies.
     local onKill = function(x,y) gameEnemyKilled(game, x,y) end
-    game.enemyManager = enemyManager.new(game.world, game.players, game.map.spawners, onKill)
+    game.enemyManager = enemyManager.new(game.world, game.players, game.map.spawners, game.map.navMesh, onKill)
 
     -- Game state.
     game.bullets = {}
