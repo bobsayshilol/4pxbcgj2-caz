@@ -1,5 +1,8 @@
 utils = require("src/utils")
 
+local s_profiler = nil
+local s_frame = 0
+
 
 
 -- Globals
@@ -69,12 +72,32 @@ g_fakeDevice2 = {
 
 
 -- Callbacks.
-function love.load()
-    love.window.setMode(1440, 900)
-    --love.window.setFullscreen(true)
-    --love.mouse.setVisible(false)
-    g_globals = globalsMake()
+function love.load(args)
+    -- Parse args.
+    local heartberry = false
+    local profile = false
+    for _,arg in ipairs(args) do
+        if arg == "--heartberry" then
+            heartberry = true
+        elseif arg == "--profile" then
+            profile = true
+        end
+    end
 
+    if heartberry then
+        love.window.setFullscreen(true)
+    else
+        love.window.setMode(1440, 900)
+    end
+    love.mouse.setVisible(false)
+
+    if profile then
+        s_profiler = require("profiler")
+        s_profiler.start()
+    end
+
+    -- Start the game.
+    g_globals = globalsMake()
     s_menu = s_menus["splash"]()
 end
 
@@ -84,6 +107,14 @@ function love.update(dt)
     local nextMenu = s_menu:update(dt)
     if nextMenu ~= nil then
         s_menu = s_menus[nextMenu]()
+    end
+
+    if s_profiler then
+        s_frame = s_frame + 1
+        if (s_frame % 400) == 0 then
+            print(s_profiler.report(10))
+            s_profiler.reset()
+        end
     end
 end
 
