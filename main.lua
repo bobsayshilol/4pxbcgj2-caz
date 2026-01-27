@@ -69,6 +69,8 @@ function love.load()
 end
 
 function love.update(dt)
+    if dt > 1/30 then dt = 1/30 end
+
     local nextMenu = s_menu:update(dt)
     if nextMenu ~= nil then
         s_menu = s_menus[nextMenu]()
