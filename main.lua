@@ -44,16 +44,26 @@ local s_menus = {
 -- Fake devices.
 ADD_FAKE_DEVICES = false
 g_fakeDevice = {
+    x = 0,
+    y = 0,
     getID = function(self) return -1,-1 end,
     setVibration = function(self, l, r, t) end,
     isGamepadDown = function(self, k) return false end,
-    getGamepadAxis = function(self, n) return 0 end,
+    getGamepadAxis = function(self, n)
+        if n == "leftx" then return self.x elseif n == "lefty" then return self.y end
+        return 0
+    end,
 }
 g_fakeDevice2 = {
+    x = 0,
+    y = 0,
     getID = function(self) return -2,-2 end,
     setVibration = function(self, l, r, t) end,
     isGamepadDown = function(self, k) return false end,
-    getGamepadAxis = function(self, n) return 0 end,
+    getGamepadAxis = function(self, n)
+        if n == "leftx" then return self.x elseif n == "lefty" then return self.y end
+        return 0
+    end,
 }
 
 
@@ -97,11 +107,35 @@ function love.keypressed(key, scancode, isRepeat)
             j = "dpleft",
             l = "dpright",
         }
+        local dir = {
+            left = { "x", -1, },
+            right = { "x", 1, },
+            up = { "y", -1, },
+            down = { "y", 1, },
+        }
 
         if m1[scancode] then
             love.gamepadpressed(g_fakeDevice, m1[scancode])
         elseif m2[scancode] then
             love.gamepadpressed(g_fakeDevice2, m2[scancode])
+        elseif dir[scancode] then
+            local k = dir[scancode]
+            g_fakeDevice[k[1]] = k[2]
+        end
+    end
+end
+
+function love.keyreleased(key, scancode)
+    if ADD_FAKE_DEVICES then
+        local dir = {
+            left = "x",
+            right = "x",
+            up = "y",
+            down = "y",
+        }
+        if dir[scancode] then
+            local k = dir[scancode]
+            g_fakeDevice[k] = 0
         end
     end
 end
