@@ -98,6 +98,7 @@ local managerUpdate = function(self, dt)
     -- Build a lookup for where the closest player is.
     -- TODO: cache this in the thinker
     local playerLookup = navmesh.buildLookup(self.navMesh, self.players)
+    self.navMeshDists = playerLookup
 
     -- Movement.
     local speed = ENEMY_SPEED

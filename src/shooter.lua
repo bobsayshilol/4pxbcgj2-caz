@@ -399,7 +399,8 @@ local gamepadpressed = function(self, js, button)
     end
 end
 
-local debugDraw = function(world)
+local debugDraw = function(self)
+    local world = self.world
     love.graphics.setColor(1,0,0,1)
     for _, body in pairs(world:getBodies()) do
         for _, fixture in pairs(body:getFixtures()) do
@@ -412,6 +413,17 @@ local debugDraw = function(world)
             else
                 love.graphics.line(body:getWorldPoints(shape:getPoints()))
             end
+        end
+    end
+
+    local navMeshDists = self.enemyManager.navMeshDists
+    if navMeshDists then
+        local navMesh = self.map.navMesh
+        local N = #navMeshDists
+        for i=1,N do
+            local c = navMesh[i][1]
+            local d = math.floor(navMeshDists[i])
+            love.graphics.print(d, c[1],c[2])
         end
     end
 end
@@ -485,7 +497,7 @@ local draw = function(self)
         end
     end
 
-    --debugDraw(self.world)
+    --debugDraw(self)
 end
 
 

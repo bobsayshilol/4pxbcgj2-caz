@@ -128,19 +128,20 @@ local navMeshBuildLookup = function(navMesh, players)
     local distances = {}
     local inf = 1000000000
 
-    -- Shouldn't be needed since we're flood filling.
+    -- We'll replace this with the best player's distance.
     for idx,nm in ipairs(navMesh) do
         distances[idx] = inf
     end
 
+    -- Flood fill every player, then pick the best.
     for pid,player in ipairs(players) do
         local pb = player.body
         local x,y = pb:getX(),pb:getY()
         local navID = navMeshFind(navMesh, x,y)
-        if navID ~= nil then
-            -- Flood fill.
+        local pDists = {}
+        if navID ~= nil and player.health > 0 then
             local batch = {}
-            distances[navID] = 0
+            pDists[navID] = 0
 
             -- Start from the links rather than the center of the current region.
             local fakeStart = {{x,y},}
@@ -148,29 +149,35 @@ local navMeshBuildLookup = function(navMesh, players)
             for _,nodeID in ipairs(node[3]) do
                 batch[#batch+1] = nodeID
                 local nNode = navMesh[nodeID]
-                distances[nodeID] = nodeDist(fakeStart, nNode)
+                pDists[nodeID] = nodeDist(fakeStart, nNode)
             end
 
             while true do
                 local nextBatch = {}
                 for _,currentID in ipairs(batch) do
                     local current = navMesh[currentID]
-                    local curDist = distances[currentID]
+                    local curDist = pDists[currentID]
                     local links = current[3]
                     for _,neighbourID in ipairs(links) do
                         -- See if this node is closer.
                         local nNode = navMesh[neighbourID]
-                        local nDist = distances[neighbourID] or inf
+                        local nDist = pDists[neighbourID] or inf
                         local t = curDist + nodeDist(current, nNode)
                         if nDist > t then
                             -- Update score and search from there.
-                            distances[neighbourID] = t
+                            pDists[neighbourID] = t
                             nextBatch[#nextBatch+1] = neighbourID
                         end
                     end
                 end
                 if #nextBatch == 0 then break end
                 batch = nextBatch
+            end
+
+            -- Add this player's distances.
+            local N = #navMesh
+            for idx = 1,N do
+                distances[idx] = math.min(distances[idx], pDists[idx])
             end
         end
     end
@@ -187,7 +194,7 @@ local navMeshQuery = function(navMesh, lookup, players, x,y)
     end
 
     -- Finds the closest player in given node.
-    local closestPlayerDir = function(nodeID)
+    local closestPlayerDxy = function(nodeID)
         local closest = 1000000000
         local dx,dy = nil,nil
         for _,player in ipairs(players) do
@@ -205,11 +212,6 @@ local navMeshQuery = function(navMesh, lookup, players, x,y)
         return dx,dy
     end
 
-    -- See if we're in the same region as a player.
-    if lookup[navID] == 0 then
-        return closestPlayerDir(navID)
-    end
-
     -- Find the best neighbour.
     local fakeStart = {{x,y},}
     local node = navMesh[navID]
@@ -219,19 +221,30 @@ local navMeshQuery = function(navMesh, lookup, players, x,y)
     for _,nodeID in ipairs(links) do
         local nNode = navMesh[nodeID]
         local dToPlayer = lookup[nodeID]
-        -- If this node contains a player then go to them.
         if dToPlayer == 0 then
-            return closestPlayerDir(nodeID)
+            -- If this node contains a player then get the distance to them.
+            local dx,dy = closestPlayerDxy(nodeID)
+            dToPlayer = math.sqrt(dx*dx+dy*dy)
+        else
+            -- Otherwise add on the time it'd take to get to that node.
+            dToPlayer = dToPlayer + nodeDist(fakeStart, nNode)
         end
-        -- Otherwise add on the time it'd take to get to that node.
-        dToPlayer = nodeDist(fakeStart, nNode) + dToPlayer
         if dToPlayer < max then
             max = dToPlayer
             bestNode = nNode
         end
     end
 
-    -- Shouldn't happen.
+    -- Also check the current node if it has a player in.
+    if lookup[navID] == 0 then
+        local dx,dy = closestPlayerDxy(navID)
+        local dl = math.sqrt(dx*dx+dy*dy)
+        if dl < max then
+            return dx,dy
+        end
+    end
+
+    -- Shouldn't be possible.
     if bestNode == nil then
         return nil,nil
     end
