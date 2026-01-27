@@ -11,6 +11,16 @@ end
 
 
 
+local navMeshInside = function(navMesh, x,y, nodeID)
+    local node = navMesh[nodeID]
+    if node == nil then return false end
+    local center,extent = node[1],node[2]
+    local dx,dy = x-center[1],y-center[2]
+    return math.abs(dx) <= extent[1] and math.abs(dy) <= extent[2]
+end
+
+
+
 local navMeshFind = function(navMesh, x,y)
     for idx,nm in ipairs(navMesh) do
         local center,extent = nm[1],nm[2]
@@ -173,21 +183,31 @@ end
 local navMeshQuery = function(navMesh, lookup, players, x,y)
     local navID = navMeshFind(navMesh, x,y)
     if navID == nil then
-        return 0,0
+        return nil,nil
     end
 
-    -- TODO: proper impl
-    local playerLocation = function()
+    -- Finds the closest player in given node.
+    local closestPlayerDir = function(nodeID)
+        local closest = 1000000000
+        local dx,dy = nil,nil
         for _,player in ipairs(players) do
             local b = player.body
             local tx,ty = b:getX(),b:getY()
-            return tx-x,ty-y
+            if player.health > 0 and navMeshInside(navMesh, tx,ty, nodeID) then
+                local ax,ay = tx-x,ty-y
+                local d = ax*ax+ay*ay
+                if d < closest then
+                    closest = d
+                    dx,dy = ax,ay
+                end
+            end
         end
+        return dx,dy
     end
 
     -- See if we're in the same region as a player.
     if lookup[navID] == 0 then
-        return playerLocation()
+        return closestPlayerDir(navID)
     end
 
     -- Find the best neighbour.
@@ -201,7 +221,7 @@ local navMeshQuery = function(navMesh, lookup, players, x,y)
         local dToPlayer = lookup[nodeID]
         -- If this node contains a player then go to them.
         if dToPlayer == 0 then
-            return playerLocation()
+            return closestPlayerDir(nodeID)
         end
         -- Otherwise add on the time it'd take to get to that node.
         dToPlayer = nodeDist(fakeStart, nNode) + dToPlayer
@@ -213,7 +233,7 @@ local navMeshQuery = function(navMesh, lookup, players, x,y)
 
     -- Shouldn't happen.
     if bestNode == nil then
-        return 0,0
+        return nil,nil
     end
 
     -- Finally we have a node to aim for.
@@ -224,6 +244,7 @@ end
 
 
 return {
+    inside = navMeshInside,
     find = navMeshFind,
     --dirTo = navMeshDirTo,
     buildLookup = navMeshBuildLookup,

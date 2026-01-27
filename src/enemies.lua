@@ -12,29 +12,6 @@ local PER_SPAWNER_EVERY = 1.8
 
 
 
-local updateClosestTarget = function(self, enemy)
-    if enemy.animating then return end
-
-    local x,y = enemy.body:getX(),enemy.body:getY()
-    local bestPlayer = nil
-    local bestScore = 1000000000
-
-    for _,player in ipairs(self.players) do
-        if player.health > 0 then
-            local dx,dy = player.body:getX()-x,player.body:getY()-y
-            local dist = dx * dx + dy * dy
-            if dist < bestScore then
-                bestScore = dist
-                bestPlayer = player
-            end
-        end
-    end
-
-    enemy.target = bestPlayer and bestPlayer.body
-end
-
-
-
 local trySpawnEnemy = function(self)
     -- Check that the next spawner is empty.
     local order = self.order
@@ -82,14 +59,11 @@ local trySpawnEnemy = function(self)
 
         damaging = {},
         nextHit = 0,
-
-        animating = false,
     }
     fixture:setUserData(enemy)
     table.insert(self.enemies, enemy)
 
     -- Start walking to the spawner entrance.
-    enemy.animating = true
     enemy.target = spawner.entrance
     return true
 end
@@ -103,9 +77,7 @@ local managerUpdate = function(self, dt)
 
         -- Retarget enemies.
         -- TODO: partial updates?
-        for _,enemy in pairs(self.enemies) do
-            updateClosestTarget(self, enemy)
-        end
+        -- TODO: if needed
     end
 
     -- Kill off dead enemies.
@@ -133,35 +105,36 @@ local managerUpdate = function(self, dt)
         speed = speed * (self.round + 10) / 20
     end
     for _,enemy in pairs(self.enemies) do
-        local target = enemy.target
-        if target then
+        do
             local b = enemy.body
             local x,y = b:getX(),b:getY()
-            local tx,ty = target:getX(),target:getY()
-            local dx,dy = tx-x,ty-y
+            local target = enemy.target
+            local dx,dy
+            if target then
+                -- If there's a target then go to it.
+                -- TODO: would need pathfinding for general case
+                local tx,ty = target:getX(),target:getY()
+                dx,dy = tx-x,ty-y
 
-            -- Query the navmesh on which way to go.
-            -- TODO: refactor all this, target or animating not needed
-            if not enemy.animating then
+                -- See if we can finish the entrance "animation".
+                local dist = dx*dx+dy*dy
+                if dist < 100 then
+                    enemy.target = nil
+
+                    -- Restore wall collisions.
+                    enemy.fixture:setMask()
+                end
+            else
+                -- Query the navmesh on which way to go.
                 dx,dy = navmesh.query(self.navMesh, playerLookup, self.players, x,y)
             end
 
-            local angle = math.atan2(dy, dx)
-            local vx = speed * math.cos(angle)
-            local vy = speed * math.sin(angle)
-            enemy.angle = angle
-            b:setLinearVelocity(vx, vy)
-
-            -- See if we can finish the entrance "animation".
-            local dist = dx*dx+dy*dy
-            if enemy.animating and dist < 100 then
-                enemy.animating = false
-
-                -- Restore wall collisions.
-                enemy.fixture:setMask()
-
-                -- Find a player to chase.
-                updateClosestTarget(self, enemy)
+            if dx ~= nil then
+                local angle = math.atan2(dy, dx)
+                local vx = speed * math.cos(angle)
+                local vy = speed * math.sin(angle)
+                enemy.angle = angle
+                b:setLinearVelocity(vx, vy)
             end
         end
 
