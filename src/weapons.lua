@@ -19,7 +19,7 @@ local WeaponTypes = {
         speed = 2000,
         damage = 120,
         vib = { 0.6, 1.0, 0.1 },
-        duration = 8,
+        duration = 12,
         displayFor = 0.3,
         drawBullet = function(self)
             local fade = self.displaying / 0.3 -- must match above
@@ -33,7 +33,7 @@ local WeaponTypes = {
         speed = 3000,
         damage = 500,
         vib = { 1.0, 0.4, 0.08 },
-        duration = 10,
+        duration = 12,
         --love.graphics.newImage("assets/"), -- TODO
         displayFor = 2.5,
         drawBullet = function(self)
