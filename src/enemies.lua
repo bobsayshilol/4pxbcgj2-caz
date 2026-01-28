@@ -45,7 +45,7 @@ local trySpawnEnemy = function(self)
 
     -- We're an enemy, and we collide with everything (except for walls, temporarily).
     fixture:setCategory(PHYS_CATEGORY_ENEMY)
-    fixture:setMask(PHYS_CATEGORY_WALL)
+    fixture:setMask(PHYS_CATEGORY_WALL, PHYS_CATEGORY_HOLE)
 
     -- Spawn the new enemy.
     local enemy = {
@@ -138,8 +138,11 @@ local managerUpdate = function(self, dt)
                 b:setLinearVelocity(vx, vy)
             end
         end
+    end
 
-        -- Attack.
+    -- Attack.
+    -- Note: this invalidates playerLookup since players could die here
+    for _,enemy in pairs(self.enemies) do
         enemy.nextHit = enemy.nextHit - dt
         if enemy.nextHit < 0 and utils.size(enemy.damaging) > 0 then
             enemy.nextHit = ENEMY_ATTACK_EVERY
@@ -173,8 +176,11 @@ local managerUpdate = function(self, dt)
 end
 
 local managerDraw = function(self)
+    love.graphics.setColor(1,1,1,1)
     for _,enemy in pairs(self.enemies) do
-        -- TODO
+        local body = enemy.body
+        local x,y = body:getX(),body:getY()
+        love.graphics.circle("fill", x,y, enemy.shape:getRadius())
     end
 end
 

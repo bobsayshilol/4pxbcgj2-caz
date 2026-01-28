@@ -6,10 +6,9 @@ local WeaponTypes = {
         damage = 70,
         vib = { 0.2, 0.4, 0.1 },
         duration = nil, -- infinite
-        --love.graphics.newImage("assets/"), -- TODO
-        displayFor = 0.8,
+        displayFor = 0.3,
         drawBullet = function(self)
-            local fade = self.displaying / 0.8
+            local fade = self.displaying / 0.3 -- must match above
             love.graphics.setColor(1,1,1,fade)
             love.graphics.circle("fill", self.x,self.y, 5)
         end,
@@ -21,10 +20,9 @@ local WeaponTypes = {
         damage = 120,
         vib = { 0.6, 1.0, 0.1 },
         duration = 8,
-        --love.graphics.newImage("assets/"), -- TODO
-        displayFor = 0.8,
+        displayFor = 0.3,
         drawBullet = function(self)
-            local fade = self.displaying / 0.8
+            local fade = self.displaying / 0.3 -- must match above
             love.graphics.setColor(1,1,1,fade)
             love.graphics.circle("fill", self.x,self.y, 8)
         end,
@@ -39,7 +37,7 @@ local WeaponTypes = {
         --love.graphics.newImage("assets/"), -- TODO
         displayFor = 2.5,
         drawBullet = function(self)
-            local fade = self.displaying / 2.5
+            local fade = self.displaying / 2.5 -- must match above
             love.graphics.setColor(1,1,1,fade)
             love.graphics.circle("fill", self.x,self.y, 50)
         end,

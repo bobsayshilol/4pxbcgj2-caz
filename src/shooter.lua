@@ -455,6 +455,7 @@ local draw = function(self)
     self.enemyManager:draw()
 
     -- Render bullets.
+    love.graphics.setColor(1,1,1)
     for _,bullet in pairs(self.bullets) do
         bullet:draw()
     end
