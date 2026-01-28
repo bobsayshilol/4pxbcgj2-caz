@@ -64,7 +64,9 @@ local s_powerUps = {
         text = "heal",
         apply = function(game, player)
             for _,p in ipairs(game.players) do
-                p.health = 100
+                if p.health > 0 then
+                    p.health = 100
+                end
             end
         end,
     },
