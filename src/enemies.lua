@@ -22,10 +22,12 @@ local trySpawnEnemy = function(self)
             order[i] = sp
         end
         utils.shuffle(order)
-        return
+        return false
+
     elseif spawner.nextTime > 0 then
         -- Waiting for this one to empty.
-        return
+        return false
+
     else
         -- Take this one.
         order[#order] = nil
@@ -189,6 +191,9 @@ local managerNewRound = function(self)
     self.round = self.round + 1
     self.enemiesRemaining = self.enemiesThisRound --* #self.players
     self.order = {}
+    for _,sp in pairs(self.spawners) do
+        sp.nextTime = 0
+    end
 
     -- Increase these for next time round.
     self.baseHealth = self.baseHealth * 1.09
@@ -212,9 +217,6 @@ end
 
 local managerChangeMap = function(self, map)
     self.spawners = map.spawners
-    for _,sp in pairs(self.spawners) do
-        sp.nextTime = 0
-    end
     self.navMesh = map.navMesh
     self.order = {}
     self.navMeshDists = nil

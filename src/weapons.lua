@@ -44,6 +44,37 @@ local WeaponTypes = {
     },
 }
 
+local bulletDraw = function(self)
+    local body = self.body
+    local x,y = body:getX(),body:getY()
+    --bullet.angle
+    love.graphics.circle("fill", x,y, self.shape:getRadius())
+end
+
+local bulletDestroy = function(self, impacts)
+    local body = self.body
+    local x,y = self.body:getX(),self.body:getY()
+
+    body:destroy()
+
+    -- Don't do anything if it's offscreen.
+    local sw,sh = love.graphics.getWidth(),love.graphics.getHeight()
+    if x < 0 or y < 0 or x > sw or y > sh then
+        return
+    end
+
+    -- Add an impact effect.
+    local impact = {
+        displaying = self.typ.displayFor,
+        x = x,
+        y = y,
+        draw = self.typ.drawBullet,
+    }
+    table.insert(impacts, impact)
+
+    -- TODO: sound effect?
+end
+
 local weaponMake = function(world, typ, pid)
     local weapon = {
         world = world,
@@ -98,38 +129,13 @@ local weaponMake = function(world, typ, pid)
 
                     angle = angle,
 
+                    typ = typ,
                     damage = typ.damage,
                     pid = self.pid,
                     hit = false,
 
-                    draw = function(self)
-                        local x,y = self.body:getX(),self.body:getY()
-                        --bullet.angle
-                        love.graphics.circle("fill", x,y, self.shape:getRadius())
-                    end,
-
-                    destroy = function(self, impacts)
-                        local x,y = self.body:getX(),self.body:getY()
-
-                        -- Don't do anything if it's offscreen.
-                        local sw,sh = love.graphics.getWidth(),love.graphics.getHeight()
-                        if x < 0 or y < 0 or x > sw or y > sh then
-                            return
-                        end
-
-                        -- Add an impact effect.
-                        local impact = {
-                            displaying = typ.displayFor,
-                            x = x,
-                            y = y,
-                            draw = typ.drawBullet,
-                        }
-                        table.insert(impacts, impact)
-
-                        -- TODO: sound effect?
-
-                        self.body:destroy()
-                    end,
+                    draw = bulletDraw,
+                    destroy = bulletDestroy,
                 }
                 fixture:setUserData(bullet)
                 table.insert(bullets, bullet)
