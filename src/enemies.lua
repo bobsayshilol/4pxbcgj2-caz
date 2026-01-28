@@ -1,7 +1,7 @@
 
 local navmesh = require("src/navmesh")
 
-local ENEMY_SPEED = 185
+local ENEMY_SPEED = 150
 local ENEMY_ATTACK_EVERY = 0.5
 local ENEMY_DAMAGE = 10
 
@@ -34,9 +34,9 @@ local trySpawnEnemy = function(self)
 
     -- Make the new enemy.
     -- TODO: caching
-    local x,y = spawner.x + love.math.random(), spawner.y + love.math.random()
+    local x,y = spawner.x, spawner.y
     local body = love.physics.newBody(self.world, x,y, "dynamic")
-    local shape = love.physics.newCircleShape(15)
+    local shape = love.physics.newCircleShape(love.graphics.getWidth() / 100)
     local fixture = love.physics.newFixture(body, shape, 100)
 
     -- We'll update the position manually.
@@ -102,8 +102,8 @@ local managerUpdate = function(self, dt)
 
     -- Movement.
     local speed = ENEMY_SPEED
-    if self.round < 12 then
-        speed = speed * (self.round + 12) / 24
+    if self.round < 10 then
+        speed = speed * (self.round + 10) / 24
     end
     for _,enemy in pairs(self.enemies) do
         do
@@ -212,6 +212,9 @@ end
 
 local managerChangeMap = function(self, map)
     self.spawners = map.spawners
+    for _,sp in pairs(self.spawners) do
+        sp.nextTime = 0
+    end
     self.navMesh = map.navMesh
     self.order = {}
     self.navMeshDists = nil

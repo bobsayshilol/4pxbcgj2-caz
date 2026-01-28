@@ -25,7 +25,7 @@ local STAGE_CHANGE_MAP_OUT = 5
 local STAGE_CHANGE_MAP_IN = 6
 
 local CHANGE_MAP_FADE_TIME = 4
-local CHANGE_MAP_EVERY = 8
+local CHANGE_MAP_EVERY = 10
 local BREATHER_TIME = 5
 
 
@@ -95,7 +95,7 @@ local s_powerUps = {
 -- Player infos.
 local playerMake = function(id, world)
     local body = love.physics.newBody(world, 0,0, "dynamic")
-    local shape = love.physics.newCircleShape(20)
+    local shape = love.physics.newCircleShape(love.graphics.getWidth() / 75)
     local fixture = love.physics.newFixture(body, shape, 100)
 
     -- We'll update the position manually.
@@ -171,7 +171,7 @@ local gameEnemyKilled = function(game, enemy)
 
         -- Spawn it.
         local body = love.physics.newBody(game.world, enemy.body:getX(),enemy.body:getY(), "static")
-        local fixture = love.physics.newFixture(body, love.physics.newCircleShape(20))
+        local fixture = love.physics.newFixture(body, love.physics.newCircleShape(love.graphics.getWidth() / 75))
 
         -- We're a pickup, and we collide with players only.
         fixture:setCategory(PHYS_CATEGORY_PICKUP)
@@ -509,9 +509,11 @@ local draw = function(self)
     self.map:drawBack()
 
     -- Render players.
+    local pCols = g_globals.playerCols
     for pid,player in ipairs(self.players) do
         -- TODO
-        love.graphics.setColor(1,1,1,1)
+        local col = pCols[pid]
+        love.graphics.setColor(col[1],col[2],col[3])
         local x,y = player.body:getX(),player.body:getY()
         love.graphics.print("Gun " .. player.id, x,y, player.angle)
         love.graphics.circle("fill", x,y, player.shape:getRadius())

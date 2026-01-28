@@ -16,19 +16,23 @@ local ROT_NORTH = 1
 local ROT_EAST = 2
 local ROT_SOUTH = 3
 local ROT_WEST = 4
-local addSpawner = function(self, world, x,y, w,h, rot)
+local addSpawner = function(self, world, x,y, sw,sh, rot)
     local spawner = {
         x = x,
         y = y,
         nextTime = 0,
     }
+
+    local spW,spH = sw/20,sw/20 -- should be ~size of enemy
+    local rots = { {0,-spH}, {spW,0}, {0,spH}, {-spW,0} } -- faces NESW
+    local sizes = { {spW,2}, {2,spH}, {spW,2}, {2,spH} }
+
+    local s = sizes[rot]
     local body = addBody(self, world, spawner.x,spawner.y)
-
-    local fixture = newFixture(body, newRectangleShape(w,h))
-    fixture:setCategory(PHYS_CATEGORY_WALL)
     spawner.body = body
+    local fixture = newFixture(body, newRectangleShape(s[1],s[2]))
+    fixture:setCategory(PHYS_CATEGORY_WALL)
 
-    local rots = { {0,-h}, {w,0}, {0,h}, {-w,0} } -- faces NESW
     local r = rots[rot]
     spawner.entrance = addBody(self, world, spawner.x+r[1],spawner.y+r[2])
 
@@ -46,11 +50,11 @@ local mapTest = function(self, world, sw,sh)
     table.insert(self.spawnPoints, {0.75*sw,0.75*sh})
 
     -- Add enemy spawners.
-    addSpawner(self, world, 1*sw,0.4*sh, sw/16,sh/16, ROT_WEST)
-    addSpawner(self, world, 0*sw,0.6*sh, sw/16,sh/16, ROT_EAST)
-    addSpawner(self, world, 0.3*sw,1*sh, sw/16,sh/16, ROT_NORTH)
-    addSpawner(self, world, 0.7*sw,1*sh, sw/16,sh/16, ROT_NORTH)
-    addSpawner(self, world, 0.6*sw,0*sh, sw/16,sh/16, ROT_SOUTH)
+    addSpawner(self, world, 1*sw,0.4*sh, sw,sh, ROT_WEST)
+    addSpawner(self, world, 0*sw,0.6*sh, sw,sh, ROT_EAST)
+    addSpawner(self, world, 0.3*sw,1*sh, sw,sh, ROT_NORTH)
+    addSpawner(self, world, 0.7*sw,1*sh, sw,sh, ROT_NORTH)
+    addSpawner(self, world, 0.6*sw,0*sh, sw,sh, ROT_SOUTH)
 
     -- No navmesh.
     self.navMesh[1] = {{sw/2,sh/2}, {sw/2,sh/2}, {}}
@@ -90,13 +94,12 @@ local mapIsland = function(self, world, sw,sh)
 
     -- Add enemy spawners.
     do
-        local spW,spH = sw/20,sw/20
-        addSpawner(self, world, 1*sw,0.8*sh, spW,spH, ROT_WEST)
-        addSpawner(self, world, 1*sw,0.3*sh, spW,spH, ROT_WEST)
-        addSpawner(self, world, 0*sw,0.8*sh, spW,spH, ROT_EAST)
-        addSpawner(self, world, 0.3*sw,1*sh, spW,spH, ROT_NORTH)
-        addSpawner(self, world, 0.7*sw,1*sh, spW,spH, ROT_NORTH)
-        addSpawner(self, world, 0.8*sw,0*sh, spW,spH, ROT_SOUTH)
+        addSpawner(self, world, 1*sw,0.8*sh, sw,sh, ROT_WEST)
+        addSpawner(self, world, 1*sw,0.3*sh, sw,sh, ROT_WEST)
+        addSpawner(self, world, 0*sw,0.8*sh, sw,sh, ROT_EAST)
+        addSpawner(self, world, 0.3*sw,1*sh, sw,sh, ROT_NORTH)
+        addSpawner(self, world, 0.7*sw,1*sh, sw,sh, ROT_NORTH)
+        addSpawner(self, world, 0.8*sw,0*sh, sw,sh, ROT_SOUTH)
     end
 
     -- No navmesh.
@@ -174,11 +177,10 @@ local mapRoofs = function(self, world, sw,sh)
 
     -- Add enemy spawners.
     do
-        local spW,spH = sw/20,sw/20
-        addSpawner(self, world, 0,(ww1y2+ww2y1)/2, spW,spH, ROT_EAST)
-        addSpawner(self, world, sw,(ww1y2+ww2y1)/2, spW,spH, ROT_WEST)
-        addSpawner(self, world, 0,(ww2y2+ww3y1)/2, spW,spH, ROT_EAST)
-        addSpawner(self, world, sw,(ww2y2+ww3y1)/2, spW,spH, ROT_WEST)
+        addSpawner(self, world, 0,(ww1y2+ww2y1)/2, sw,sh, ROT_EAST)
+        addSpawner(self, world, sw,(ww1y2+ww2y1)/2, sw,sh, ROT_WEST)
+        addSpawner(self, world, 0,(ww2y2+ww3y1)/2, sw,sh, ROT_EAST)
+        addSpawner(self, world, sw,(ww2y2+ww3y1)/2, sw,sh, ROT_WEST)
     end
 
     -- Holes for walkways.

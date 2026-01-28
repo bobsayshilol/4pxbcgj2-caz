@@ -4,7 +4,7 @@ local WeaponTypes = {
         bps = 10,
         speed = 1500,
         damage = 70,
-        vib = { 0.2, 0.4, 0.1 },
+        vib = { 0.2, 0.3, 0.1 },
         duration = nil, -- infinite
         displayFor = 0.3,
         drawBullet = function(self)
@@ -73,7 +73,7 @@ local weaponMake = function(world, typ, pid)
                 -- Make the new bullet.
                 -- TODO: caching
                 local body = love.physics.newBody(self.world, x,y, "dynamic")
-                local shape = love.physics.newCircleShape(3)
+                local shape = love.physics.newCircleShape(love.graphics.getWidth() / 500)
                 local fixture = love.physics.newFixture(body, shape, 0)
 
                 -- We're a bullet, and we collide with everything except for bullets and players and holes.
