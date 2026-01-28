@@ -21,6 +21,12 @@ local STAGE_BREATHER = 1
 local STAGE_FIGHTING = 2
 local STAGE_DEAD = 3
 local STAGE_OVER = 4
+local STAGE_CHANGE_MAP_OUT = 5
+local STAGE_CHANGE_MAP_IN = 6
+
+local CHANGE_MAP_FADE_TIME = 4
+local CHANGE_MAP_EVERY = 8
+local BREATHER_TIME = 5
 
 
 -- Weapons.
@@ -307,10 +313,23 @@ local update = function(self, dt)
         local stage = self.stage
         self.stageTimer = self.stageTimer + dt
         if stage == STAGE_BREATHER then
-            if self.stageTimer > 5 then
+            if self.stageTimer > BREATHER_TIME then
                 self.stageTimer = 0
                 self.enemyManager:newRound()
                 self.stage = STAGE_FIGHTING
+            end
+
+        elseif stage == STAGE_CHANGE_MAP_OUT then
+            if self.stageTimer > CHANGE_MAP_FADE_TIME then
+                gameChangeMap(self)
+                self.stageTimer = 0
+                self.stage = STAGE_CHANGE_MAP_IN
+            end
+        elseif stage == STAGE_CHANGE_MAP_IN then
+            if self.stageTimer > CHANGE_MAP_FADE_TIME then
+                -- Jump straight to finished breather.
+                self.stageTimer = BREATHER_TIME
+                self.stage = STAGE_BREATHER
             end
 
         elseif stage == STAGE_DEAD then
@@ -390,7 +409,11 @@ local update = function(self, dt)
     if fighting then
         local over = not self.enemyManager:update(dt)
         if over then
-            self.stage = STAGE_BREATHER
+            if (self.enemyManager.round % CHANGE_MAP_EVERY) == 0 then
+                self.stage = STAGE_CHANGE_MAP_OUT
+            else
+                self.stage = STAGE_BREATHER
+            end
             self.stageTimer = 0
         end
     end
@@ -512,6 +535,14 @@ local draw = function(self)
     end
     for _,impact in pairs(self.impacts) do
         impact:draw()
+    end
+
+    -- Apply fade if changing level.
+    if self.stage == STAGE_CHANGE_MAP_OUT or self.stage == STAGE_CHANGE_MAP_IN then
+        local t = self.stageTimer / CHANGE_MAP_FADE_TIME
+        if self.stage == STAGE_CHANGE_MAP_IN then t = 1 - t end
+        love.graphics.setColor(0,0,0,t)
+        love.graphics.rectangle("fill", 0,0, screenW,screenH)
     end
 
     -- Render overlays.
