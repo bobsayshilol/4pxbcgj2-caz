@@ -85,8 +85,8 @@ local s_powerUps = {
 
 
 -- Player infos.
-local playerMake = function(id, pos, world)
-    local body = love.physics.newBody(world, pos[1],pos[2], "dynamic")
+local playerMake = function(id, world)
+    local body = love.physics.newBody(world, 0,0, "dynamic")
     local shape = love.physics.newCircleShape(20)
     local fixture = love.physics.newFixture(body, shape, 100)
 
@@ -183,6 +183,43 @@ local gameEnemyKilled = function(game, enemy)
         table.insert(game.pickups, pickup)
         fixture:setUserData(pickup)
     end
+end
+
+local gameChangeMap = function(self)
+    -- Bin the old one.
+    if self.map then
+        self.map:destroy()
+    end
+
+    -- Clear up any markers and drops.
+    for k,bullet in pairs(self.bullets) do
+        bullet:destroy(self.impacts)
+        self.bullets[k] = nil
+    end
+    for k,impact in pairs(self.impacts) do
+        self.impacts[k] = nil
+    end
+    for k,pu in pairs(self.pickups) do
+        pu.body:destroy()
+        self.pickups[k] = nil
+    end
+
+    -- Cycle to next map.
+    local all = maps.all
+    local idx = self.mapIdx + 1
+    if idx > #all then idx = 1 end
+
+    local map = maps.new(self.world, all[idx])
+    self.map = map
+    self.mapIdx = idx
+
+    -- Move players to the new spawns.
+    local sp = map.spawnPoints
+    for pid,player in ipairs(self.players) do
+        local spp = sp[pid]
+        player.body:setPosition(spp[1],spp[2])
+    end
+    self.enemyManager:changeMap(map)
 end
 
 
@@ -532,21 +569,16 @@ local new = function()
         nil, nil
     )
 
-    -- Setup the current map.
-    -- TODO: change maps every N levels
-    game.map = maps.new(game.world, maps.mapIsland)
-
     -- Add players.
     game.players = {}
     local numPlayers = utils.size(g_globals.jsToPlayerID)
-    if numPlayers > 0 then game.players[1] = playerMake(1, game.map.spawnPoints[1], game.world) end
-    if numPlayers > 1 then game.players[2] = playerMake(2, game.map.spawnPoints[2], game.world) end
-    if numPlayers > 2 then game.players[3] = playerMake(3, game.map.spawnPoints[3], game.world) end
-    if numPlayers > 3 then game.players[4] = playerMake(4, game.map.spawnPoints[4], game.world) end
+    for i=1,numPlayers do
+        game.players[i] = playerMake(i, game.world)
+    end
 
     -- Enemies.
     local onKill = function(x,y) gameEnemyKilled(game, x,y) end
-    game.enemyManager = enemyManager.new(game.world, game.players, game.map.spawners, game.map.navMesh, onKill)
+    game.enemyManager = enemyManager.new(game.world, game.players, onKill)
 
     -- Game state.
     game.bullets = {}
@@ -558,6 +590,10 @@ local new = function()
     game.stage = STAGE_BREATHER
     game.stageTimer = 0
     game.nextDrop = love.math.random(DROP_AFTER_MIN, DROP_AFTER_MAX)
+
+    -- Go to the first map.
+    game.mapIdx = 0
+    gameChangeMap(game)
 
     return game
 end

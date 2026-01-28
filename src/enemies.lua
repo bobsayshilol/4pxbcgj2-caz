@@ -102,8 +102,8 @@ local managerUpdate = function(self, dt)
 
     -- Movement.
     local speed = ENEMY_SPEED
-    if self.round < 10 then
-        speed = speed * (self.round + 10) / 20
+    if self.round < 12 then
+        speed = speed * (self.round + 12) / 24
     end
     for _,enemy in pairs(self.enemies) do
         do
@@ -188,6 +188,7 @@ local managerNewRound = function(self)
     -- Setup this round.
     self.round = self.round + 1
     self.enemiesRemaining = self.enemiesThisRound --* #self.players
+    self.order = {}
 
     -- Increase these for next time round.
     self.baseHealth = self.baseHealth * 1.09
@@ -209,13 +210,21 @@ local managerKillAll = function(self)
     end
 end
 
-local managerMake = function(world, players, spawners, navMesh, onKill)
+local managerChangeMap = function(self, map)
+    self.spawners = map.spawners
+    self.navMesh = map.navMesh
+    self.order = {}
+    self.navMeshDists = nil
+end
+
+local managerMake = function(world, players, onKill)
     local manager = {
         world = world,
         players = players,
-        navMesh = navMesh,
+        navMesh = nil,
+        navMeshDists = nil,
         onKill = onKill,
-        spawners = spawners,
+        spawners = nil,
         order = {},
 
         enemies = {},
@@ -232,6 +241,7 @@ local managerMake = function(world, players, spawners, navMesh, onKill)
         draw = managerDraw,
         newRound = managerNewRound,
         killAll = managerKillAll,
+        changeMap = managerChangeMap,
     }
     return manager
 end

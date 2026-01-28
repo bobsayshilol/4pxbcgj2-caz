@@ -2,7 +2,8 @@
 
 local addBody = function(self, world, x,y)
     local body = love.physics.newBody(world, x,y, "static")
-    table.insert(self.bodies, border)
+    local bods = self.bodies
+    bods[#bods+1] = body
     return body
 end
 local newFixture = love.physics.newFixture
@@ -343,7 +344,7 @@ return {
     mapTest = mapTest,
     mapIsland = mapIsland,
     mapRoofs = mapRoofs,
-    maps = {
+    all = {
         mapIsland,
         mapRoofs,
     }
