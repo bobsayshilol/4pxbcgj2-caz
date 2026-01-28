@@ -434,8 +434,8 @@ local draw = function(self)
 
     local screenW,screenH = love.graphics.getWidth(),love.graphics.getHeight()
 
-    -- Render map.
-    -- TODO
+    -- Render map background.
+    self.map:drawBack()
 
     -- Render players.
     for pid,player in ipairs(self.players) do
@@ -453,6 +453,9 @@ local draw = function(self)
 
     -- Render enemies.
     self.enemyManager:draw()
+
+    -- Render over players.
+    self.map:drawFront()
 
     -- Render bullets.
     love.graphics.setColor(1,1,1)
@@ -522,7 +525,7 @@ local new = function()
 
     -- Setup the current map.
     -- TODO: change maps every N levels
-    game.map = maps.new(game.world, maps.map2)
+    game.map = maps.new(game.world, maps.mapIsland)
 
     -- Add players.
     game.players = {}
