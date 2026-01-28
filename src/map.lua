@@ -270,9 +270,9 @@ local mapRoofs = function(self, world, sw,sh)
         lg.rectangle("fill", xl,ww2y1, xr-xl,ww2y2-ww2y1)
         lg.rectangle("fill", xl,ww3y1, xr-xl,ww3y2-ww3y1)
         lg.setColor(0.5,0.4,0)
-        lg.rectangle("fill", xl,ww1y1-railW, xr-xl,railW)
-        lg.rectangle("fill", xl,ww2y1-railW, xr-xl,railW)
-        lg.rectangle("fill", xl,ww3y1-railW, xr-xl,railW)
+        lg.rectangle("fill", xl,ww1y1-railW/2, xr-xl,railW)
+        lg.rectangle("fill", xl,ww2y1-railW/2, xr-xl,railW)
+        lg.rectangle("fill", xl,ww3y1-railW/2, xr-xl,railW)
     end
 
     -- Foreground.
@@ -281,9 +281,9 @@ local mapRoofs = function(self, world, sw,sh)
 
         -- Walkways.
         lg.setColor(0.5,0.4,0)
-        lg.rectangle("fill", xl,ww1y2-railW, xr-xl,railW)
-        lg.rectangle("fill", xl,ww2y2-railW, xr-xl,railW)
-        lg.rectangle("fill", xl,ww3y2-railW, xr-xl,railW)
+        lg.rectangle("fill", xl,ww1y2-railW/2, xr-xl,railW)
+        lg.rectangle("fill", xl,ww2y2-railW/2, xr-xl,railW)
+        lg.rectangle("fill", xl,ww3y2-railW/2, xr-xl,railW)
     end
 end
 
