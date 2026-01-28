@@ -582,7 +582,9 @@ local draw = function(self)
         end
     end
 
-    --debugDraw(self)
+    if g_debugging then
+        debugDraw(self)
+    end
 end
 
 

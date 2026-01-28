@@ -3,6 +3,8 @@ utils = require("src/utils")
 local s_profiler = nil
 local s_frame = 0
 
+g_debugging = false
+
 
 
 -- Globals
@@ -81,6 +83,8 @@ function love.load(args)
             heartberry = true
         elseif arg == "--profile" then
             profile = true
+        elseif arg == "--debug" then
+            g_debugging = true
         end
     end
 
