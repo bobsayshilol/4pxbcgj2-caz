@@ -6,6 +6,8 @@ Twin stick shooter, like blops arcade.
 local DEADZONE_TOLERANCE = 0.2
 local MOVE_SPEED = 200
 local SCORE_PER_REVIVE = 25000
+local DROP_AFTER_MIN = 20
+local DROP_AFTER_MAX = 50
 
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
@@ -143,11 +145,18 @@ end
 
 local gameEnemyKilled = function(game, enemy)
     -- Last enemy always drops something.
-    local lastKill = game.enemyManager.enemiesRemaining == 0
+    local shouldDrop = game.enemyManager.enemiesRemaining == 0
 
-    -- Random chance to drop something.
-    local oneInN = 50
-    if lastKill or love.math.random(oneInN - 1) == 1 then
+    -- Random chance to drop something too.
+    if not shouldDrop then
+        game.nextDrop = game.nextDrop - 1
+        if game.nextDrop == 0 then
+            game.nextDrop = love.math.random(DROP_AFTER_MIN, DROP_AFTER_MAX)
+            shouldDrop = true
+        end
+    end
+
+    if shouldDrop then
         -- Pick a random powerup.
         local idx = love.math.random(#s_powerUps)
         local powerUp = s_powerUps[idx]
@@ -548,6 +557,7 @@ local new = function()
     game.scoreUntilNextRevive = SCORE_PER_REVIVE
     game.stage = STAGE_BREATHER
     game.stageTimer = 0
+    game.nextDrop = love.math.random(DROP_AFTER_MIN, DROP_AFTER_MAX)
 
     return game
 end
