@@ -70,13 +70,13 @@ local mapTest = function(self, world, sw,sh)
     end
 
     -- Background.
-    self.drawBack = function()
+    self.drawBack = function(self,mapX,mapY)
         local lg = love.graphics
         lg.setColor(1,1,1)
     end
 
     -- Foreground.
-    self.drawFront = function()
+    self.drawFront = function(self)
         local lg = love.graphics
         lg.setColor(1,1,1)
     end
@@ -124,7 +124,7 @@ local mapIsland = function(self, world, sw,sh)
 --]]
 
     -- Background.
-    self.drawBack = function()
+    self.drawBack = function(self,mapX,mapY)
         local lg = love.graphics
 
         -- Water.
@@ -135,16 +135,17 @@ local mapIsland = function(self, world, sw,sh)
         lg.clear(0,0,1)
 
         local center = 1.5
-        local sandR = 1.4
+        local waterR = center + 0.01*math.sin(t*2)
+        local sandR = 1.3
         local paveR = 0.8
         local cx,cy = sw*(1+center)/2,sh*(1+center)/2
 
         -- Sand.
         lg.setColor(1,1,0)
-        lg.ellipse("fill", cx,cy, sw*center,sh*center)
+        lg.ellipse("fill", cx,cy, sw*waterR,sh*waterR)
 
         -- Grass.
-        lg.setColor(0,1,0)
+        lg.setColor(0,0.8,0)
         lg.ellipse("fill", cx,cy, sw*sandR,sh*sandR)
 
         -- Pavement.
@@ -153,7 +154,7 @@ local mapIsland = function(self, world, sw,sh)
     end
 
     -- Foreground.
-    self.drawFront = function()
+    self.drawFront = function(self)
         local lg = love.graphics
         lg.setColor(1,1,1)
     end
@@ -254,13 +255,37 @@ local mapRoofs = function(self, world, sw,sh)
     local railW = 0.02*sh
 
     -- Background.
-    self.drawBack = function()
+    self.drawBack = function(self,mapX,mapY)
         local lg = love.graphics
+        local t = love.timer.getTime()
 
-        -- TODO: parallax would be cool
-
-        -- Road below.
+        -- Floor below.
+        lg.push()
         lg.clear(0,0,0)
+        do
+            lg.translate(-mapX/2,-mapY/2)
+
+            -- Road.
+            lg.setColor(1,1,1)
+            local rw,rh = sw/20,sh/6
+            lg.rectangle("fill", (sw-rw)/2,1*rh, rw,rh)
+            lg.rectangle("fill", (sw-rw)/2,3*rh, rw,rh)
+            lg.rectangle("fill", (sw-rw)/2,5*rh, rw,rh)
+
+            -- Cars.
+            lg.setColor(1,1,1)
+            local cw,ch = sw/20,sh/6
+            local cy = ((t % 10) - 2) * sh
+            lg.rectangle("fill", (xl+sw/2-cw)/2,cy, cw,ch)
+            lg.rectangle("fill", (xr+sw/2-cw)/2,4*sh-cy, cw,ch)
+
+            -- Walls.
+            local wallPad = 0.05*sw
+            lg.setColor(0.6,0.4,0.3)
+            lg.rectangle("fill", 0,0, xl+wallPad,sh)
+            lg.rectangle("fill", xr-wallPad,0, xr+wallPad,sh)
+        end
+        lg.pop()
 
         -- Roofs.
         lg.setColor(0.9,0.8,0.7)
@@ -279,7 +304,7 @@ local mapRoofs = function(self, world, sw,sh)
     end
 
     -- Foreground.
-    self.drawFront = function()
+    self.drawFront = function(self)
         local lg = love.graphics
 
         -- Walkways.

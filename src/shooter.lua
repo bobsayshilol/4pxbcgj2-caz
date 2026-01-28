@@ -471,18 +471,19 @@ local gamepadpressed = function(self, js, button)
 end
 
 local debugDraw = function(self)
+    local lg = love.graphics
     local world = self.world
-    love.graphics.setColor(1,0,0,1)
+    lg.setColor(1,0,0,1)
     for _, body in pairs(world:getBodies()) do
         for _, fixture in pairs(body:getFixtures()) do
             local shape = fixture:getShape()
             if shape:typeOf("CircleShape") then
                 local cx, cy = body:getWorldPoints(shape:getPoint())
-                love.graphics.circle("line", cx, cy, shape:getRadius())
+                lg.circle("line", cx, cy, shape:getRadius())
             elseif shape:typeOf("PolygonShape") then
-                love.graphics.polygon("line", body:getWorldPoints(shape:getPoints()))
+                lg.polygon("line", body:getWorldPoints(shape:getPoints()))
             else
-                love.graphics.line(body:getWorldPoints(shape:getPoints()))
+                lg.line(body:getWorldPoints(shape:getPoints()))
             end
         end
     end
@@ -494,34 +495,59 @@ local debugDraw = function(self)
         for i=1,N do
             local c = navMesh[i][1]
             local d = math.floor(navMeshDists[i])
-            love.graphics.print(d, c[1],c[2])
+            lg.print(d, c[1],c[2])
         end
     end
 end
 
 local draw = function(self)
-    -- Clear screen.
-    love.graphics.clear(0, 0, 0, 1)
+    local lg = love.graphics
 
-    local screenW,screenH = love.graphics.getWidth(),love.graphics.getHeight()
+    -- Clear screen.
+    lg.clear(0, 0, 0, 1)
+
+    local screenW,screenH = lg.getWidth(),lg.getHeight()
+    local players = self.players
+    local numPlayers = #players
+
+    -- World rendering start.
+    lg.push()
+
+    local avgX,avgY = 0,0
+    for pid=1,numPlayers do
+        local body = players[pid].body
+        local x,y = body:getX(),body:getY()
+        x = x/screenW - 0.5
+        y = y/screenH - 0.5
+        avgX = avgX + x / numPlayers
+        avgY = avgY + y / numPlayers
+    end
+
+    -- Zoom in a bit and follow the players.
+    -- HACK: this feels like the wrong order of operations, but it works
+    lg.translate(screenW/2,screenH/2)
+    lg.scale(1.1)
+    lg.translate(-screenW/2,-screenH/2)
+    local mapX,mapY = -avgX*screenW/10,-avgY*screenH/10
+    lg.translate(mapX,mapY)
 
     -- Render map background.
-    self.map:drawBack()
+    self.map:drawBack(mapX,mapY)
 
     -- Render players.
     local pCols = g_globals.playerCols
-    for pid,player in ipairs(self.players) do
+    for pid,player in ipairs(players) do
         -- TODO
         local col = pCols[pid]
-        love.graphics.setColor(col[1],col[2],col[3])
+        lg.setColor(col[1],col[2],col[3])
         local x,y = player.body:getX(),player.body:getY()
-        love.graphics.print("Gun " .. player.id, x,y, player.angle)
-        love.graphics.circle("fill", x,y, player.shape:getRadius())
+        lg.print("Gun " .. player.id, x,y, player.angle)
+        lg.circle("fill", x,y, player.shape:getRadius())
     end
 
     -- Render pickups.
     for _,pickup in pairs(self.pickups) do
-        love.graphics.print(pickup.powerUp.text .. " " .. math.floor(pickup.time), pickup.body:getX(),pickup.body:getY())
+        lg.print(pickup.powerUp.text .. " " .. math.floor(pickup.time), pickup.body:getX(),pickup.body:getY())
     end
 
     -- Render enemies.
@@ -531,7 +557,7 @@ local draw = function(self)
     self.map:drawFront()
 
     -- Render bullets.
-    love.graphics.setColor(1,1,1)
+    lg.setColor(1,1,1)
     for _,bullet in pairs(self.bullets) do
         bullet:draw()
     end
@@ -539,19 +565,24 @@ local draw = function(self)
         impact:draw()
     end
 
+    -- World rendering end.
+    lg.pop()
+
+
+
     -- Apply fade if changing level.
     if self.stage == STAGE_CHANGE_MAP_OUT or self.stage == STAGE_CHANGE_MAP_IN then
         local t = self.stageTimer / CHANGE_MAP_FADE_TIME
         if self.stage == STAGE_CHANGE_MAP_IN then t = 1 - t end
-        love.graphics.setColor(0,0,0,t)
-        love.graphics.rectangle("fill", 0,0, screenW,screenH)
+        lg.setColor(0,0,0,t)
+        lg.rectangle("fill", 0,0, screenW,screenH)
     end
 
     -- Render overlays.
-    love.graphics.setColor(1,1,1,1)
-    love.graphics.print("Round " .. self.enemyManager.round, screenW/2,screenH*2/20)
-    love.graphics.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*3/20)
-    love.graphics.print("Revives " .. self.revives, screenW/2,screenH*4/20)
+    lg.setColor(1,1,1,1)
+    lg.print("Round " .. self.enemyManager.round, screenW/2,screenH*2/20)
+    lg.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*3/20)
+    lg.print("Revives " .. self.revives, screenW/2,screenH*4/20)
 
     local p = 0.1
     local corners = {
@@ -560,25 +591,25 @@ local draw = function(self)
         {p*screenW, (1-p)*screenH},
         {(1-p)*screenW, (1-p)*screenH},
     }
-    for pid,player in ipairs(self.players) do
-        love.graphics.print(pid .. ": " .. player.health .. " " .. player.kills .. " " .. player.score, corners[pid][1], corners[pid][2])
+    for pid,player in ipairs(players) do
+        lg.print(pid .. ": " .. player.health .. " " .. player.kills .. " " .. player.score, corners[pid][1], corners[pid][2])
     end
 
     do
         local stage = self.stage
         if stage == STAGE_FIGHTING and self.stageTimer < 3 then
-            love.graphics.print("ROUND " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
+            lg.print("ROUND " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
         elseif stage == STAGE_DEAD then
-            love.graphics.print("GAME OVER", screenW/2,screenH/4, 0, 5)
+            lg.print("GAME OVER", screenW/2,screenH/4, 0, 5)
             local y = screenH/3
-            love.graphics.print("Player | Kills | Score", screenW/2,y, 0, 3)
+            lg.print("Player | Kills | Score", screenW/2,y, 0, 3)
             y = y + 50
-            for pid,player in ipairs(self.players) do
-                love.graphics.print(pid .. " | " .. player.kills .. " | " .. player.score, screenW/2,y, 0, 3)
+            for pid,player in ipairs(players) do
+                lg.print(pid .. " | " .. player.kills .. " | " .. player.score, screenW/2,y, 0, 3)
                 y = y + 50
             end
             y = y + 50
-            love.graphics.print("Made it to round " .. self.enemyManager.round, screenW/2,y, 0, 2)
+            lg.print("Made it to round " .. self.enemyManager.round, screenW/2,y, 0, 2)
         end
     end
 
