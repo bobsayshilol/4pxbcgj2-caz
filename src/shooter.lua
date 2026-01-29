@@ -7,7 +7,7 @@ local DEADZONE_TOLERANCE = 0.2
 local MOVE_SPEED = 200
 local SCORE_PER_REVIVE = 25000
 local DROP_AFTER_MIN = 20
-local DROP_AFTER_MAX = 50
+local DROP_AFTER_MAX = 45
 
 -- Used inside weapons, can't be local.
 PHYS_CATEGORY_WALL = 1      -- UserData = nil
@@ -574,7 +574,8 @@ local draw = function(self)
     self.map:drawFront()
 
     -- Render bullets.
-    lg.setColor(1,1,1)
+    -- Batching would have been better.
+    lg.setColor(0.1,0.1,0.1)
     for _,bullet in pairs(self.bullets) do
         bullet:draw()
     end

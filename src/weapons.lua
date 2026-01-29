@@ -7,10 +7,10 @@ local WeaponTypes = {
         vib = { 0.2, 0.3, 0.1 },
         duration = nil, -- infinite
         displayFor = 0.3,
-        drawBullet = function(self)
-            local fade = self.displaying / 0.3 -- must match above
+        drawImpact = function(impact)
+            local fade = impact.displaying / 0.3 -- must match above
             love.graphics.setColor(1,1,1,fade)
-            love.graphics.circle("fill", self.x,self.y, 5)
+            love.graphics.circle("fill", impact.x,impact.y, 5)
         end,
     },
     Minigun = {
@@ -21,10 +21,10 @@ local WeaponTypes = {
         vib = { 0.6, 1.0, 0.1 },
         duration = 12,
         displayFor = 0.3,
-        drawBullet = function(self)
-            local fade = self.displaying / 0.3 -- must match above
+        drawImpact = function(impact)
+            local fade = impact.displaying / 0.3 -- must match above
             love.graphics.setColor(1,1,1,fade)
-            love.graphics.circle("fill", self.x,self.y, 8)
+            love.graphics.circle("fill", impact.x,impact.y, 8)
         end,
     },
     RPG = {
@@ -36,19 +36,27 @@ local WeaponTypes = {
         duration = 12,
         --love.graphics.newImage("assets/"), -- TODO
         displayFor = 2.5,
-        drawBullet = function(self)
-            local fade = self.displaying / 2.5 -- must match above
+        drawImpact = function(impact)
+            local fade = impact.displaying / 2.5 -- must match above
             love.graphics.setColor(1,1,1,fade)
-            love.graphics.circle("fill", self.x,self.y, 50)
+            love.graphics.circle("fill", impact.x,impact.y, 50)
         end,
     },
 }
 
 local bulletDraw = function(self)
+    local lg = love.graphics
+
     local body = self.body
-    local x,y = body:getX(),body:getY()
-    --bullet.angle
-    love.graphics.circle("fill", x,y, self.shape:getRadius())
+    lg.push()
+    do
+        lg.translate(body:getX(),body:getY())
+        lg.rotate(self.angle)
+        local r = self.shape:getRadius()
+        local d = 1
+        lg.rectangle("fill", -d*r,-r, (d+2)*r,2*r)
+    end
+    lg.pop()
 end
 
 local bulletDestroy = function(self, impacts)
@@ -68,7 +76,7 @@ local bulletDestroy = function(self, impacts)
         displaying = self.typ.displayFor,
         x = x,
         y = y,
-        draw = self.typ.drawBullet,
+        draw = self.typ.drawImpact,
     }
     table.insert(impacts, impact)
 

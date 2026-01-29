@@ -7,7 +7,7 @@ local ENEMY_DAMAGE = 10
 
 local THINK_EVERY = 1
 local MAX_ON_SCREEN = 20
-local SPAWN_EVERY = 0.8
+local SPAWN_EVERY = 0.6
 local PER_SPAWNER_EVERY = 1.8
 
 
