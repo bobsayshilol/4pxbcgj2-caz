@@ -7,18 +7,20 @@ Grid is 16x16 (12 + 2*2)
 
 local DISABLED_MOVE_TIME = 3 -- seconds
 
+local IMAGE_TYPE = "W3" -- or W
+
 
 
 -- Pieces.
 local PT = {
     Empty = {
         name="Empty",
-        draw = function(x,y) end,
+        image = nil,
         --canMove = function(dx,dy) return false end,
     },
     Pawn = {
         name="Pawn",
-        draw = function(x,y) love.graphics.print("Pawn", x, y) end,
+        image = love.graphics.newImage("assets/chess/pawn" .. IMAGE_TYPE .. ".png"),
         canMove = function(dx,dy)
             dx,dy = math.abs(dx),math.abs(dy)
             return (dx==0 and dy<2) or (dx<2 and dy==0)
@@ -29,14 +31,14 @@ local PT = {
     },
     Rook = {
         name="Rook",
-        draw = function(x,y) love.graphics.print("Rook", x, y) end,
+        image = love.graphics.newImage("assets/chess/rook" .. IMAGE_TYPE .. ".png"),
         canMove = function(dx,dy)
             return math.abs(dx) == 0 or math.abs(dy) == 0
         end,
     },
     Knight = {
         name="Knight",
-        draw = function(x,y) love.graphics.print("Knight", x, y) end,
+        image = love.graphics.newImage("assets/chess/knight" .. IMAGE_TYPE .. ".png"),
         canMove = function(dx,dy)
             dx,dy = math.abs(dx),math.abs(dy)
             return (dx==0 and dy==0) or (dx==1 and dy==2) or (dx==2 and dy==1)
@@ -44,14 +46,14 @@ local PT = {
     },
     Bishop = {
         name="Bishop",
-        draw = function(x,y) love.graphics.print("Bishop", x, y) end,
+        image = love.graphics.newImage("assets/chess/bishop" .. IMAGE_TYPE .. ".png"),
         canMove = function(dx,dy)
             return math.abs(dx) == math.abs(dy)
         end,
     },
     King = {
         name="King",
-        draw = function(x,y) love.graphics.print("King", x, y) end,
+        image = love.graphics.newImage("assets/chess/king" .. IMAGE_TYPE .. ".png"),
         canMove = function(dx,dy)
             dx,dy = math.abs(dx),math.abs(dy)
             return (dx<2) and (dy<2)
@@ -66,17 +68,17 @@ local pieceMake = function(t, o, x,y)
         y = y,
         disabledCountdown = DISABLED_MOVE_TIME,
         selected = false,
-        draw = function(self, x,y)
+        draw = function(self, x,y, cellX,cellY)
             if not self.owner then return end -- Empty tiles aren't owned
             local s = 1
             if self.selected then s = 0.5 end
             love.graphics.setColor(s*self.owner.col[1], s*self.owner.col[2], s*self.owner.col[3], 1)
-            self.typ.draw(x,y)
+            local image = self.typ.image
+            love.graphics.draw(image, x,y, 0, cellX/image:getWidth(),cellY/image:getHeight())
 
             -- Draw over to show countdown.
             if self.disabledCountdown > 0 then
                 love.graphics.setColor(self.owner.col[1], self.owner.col[2], self.owner.col[3], 0.4)
-                local cellX,cellY = g_globals.cx, g_globals.cy
                 local remaining = cellY * self.disabledCountdown / DISABLED_MOVE_TIME
                 love.graphics.rectangle("fill", x, y + remaining, cellX, cellY - remaining)
             end
@@ -340,7 +342,7 @@ local draw = function(self)
             love.graphics.setColor(grey,grey,grey,1)
             love.graphics.rectangle(((x + y) % 2 == 0) and "fill" or "line", offsetX+x*cellX, offsetY+y*cellY, cellX, cellY)
             -- Contents.
-            gridGet(self.grid, x, y):draw(offsetX+x*cellX, offsetY+y*cellY)
+            gridGet(self.grid, x, y):draw(offsetX+x*cellX, offsetY+y*cellY, cellX,cellY)
         end
     end
 
