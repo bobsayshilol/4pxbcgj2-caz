@@ -112,8 +112,8 @@ local mapIsland = function(self, world, sw,sh)
         newFixture(border, newEdgeShape(0.18*sw,0.18*sh, 0.4*sw,0)):setCategory(PHYS_CATEGORY_HOLE)
     end
 
---[[ TODO
     -- Textures.
+    local waterFPS = 30
     local waters = {}
     for i=0,39 do
         local water = love.graphics.newImage("assets/water_128px_frames/" .. string.format("%04i", i) .. ".png")
@@ -121,7 +121,6 @@ local mapIsland = function(self, world, sw,sh)
         waters[i] = water
     end
     local waterFullscreen = love.graphics.newQuad(0,0, sw,sh, waters[0])
---]]
 
     -- Background.
     self.drawBack = function(self,mapX,mapY)
@@ -129,10 +128,9 @@ local mapIsland = function(self, world, sw,sh)
 
         -- Water.
         local t = love.timer.getTime()
-        --local wi = math.floor(t * 30) % #waters
-        --lg.setColor(1,1,1)
-        --lg.draw(waters[wi], waterFullscreen, 0,0)
-        lg.clear(0,0,1)
+        local wi = math.floor(t * waterFPS) % #waters
+        lg.setColor(1,1,1)
+        lg.draw(waters[wi], waterFullscreen, 0,0)
 
         local center = 1.5
         local waterR = center + 0.01*math.sin(t*2)
