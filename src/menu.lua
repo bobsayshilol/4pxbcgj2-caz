@@ -24,21 +24,31 @@ local enoughReady = function(states, game)
     return game.minPlayers <= num and num <= game.maxPlayers
 end
 
-local freeID = function(states)
-    local ids = {}
-    ids[1] = true
-    ids[2] = true
-    ids[3] = true
-    ids[4] = true
+local hasFreeID = function(states, game)
+    local num = 0
     for js,state in pairs(states) do
-        if state.pid then
-            ids[state.pid] = nil
+        if state.ready then num = num + 1 end
+    end
+    return num < game.maxPlayers
+end
+
+local rebuildIDs = function(states)
+    local ready = {}
+    -- Clear out old IDs.
+    for js,state in pairs(states) do
+        state.pid = nil
+        if state.ready then
+            table.insert(ready, state)
         end
     end
-    for pid,_ in pairs(ids) do
-        return pid
+    -- Sort on ready up time.
+    local first = function(a,b)
+        return a.ready < b.ready
     end
-    return nil
+    table.sort(ready, first)
+    for pid,state in ipairs(ready) do
+        state.pid = pid
+    end
 end
 
 
@@ -61,17 +71,20 @@ end
 
 local gamepadpressed = function(self, js, button)
     local state = self.jsStates[js]
+    local game = s_games[self.gameChoice]
+
     if state.pid == nil and button == "a" then
-        local pid = freeID(self.jsStates)
-        if pid then
-            state.ready = true
-            state.pid = pid
+        if hasFreeID(self.jsStates, game) then
+            state.ready = love.timer.getTime()
+            rebuildIDs(self.jsStates)
         end
+
     elseif state.pid ~= nil and button == "b" then
         state.ready = false
         state.pid = nil
+        rebuildIDs(self.jsStates)
 
-    elseif state.pid == 1 and button == "x" and enoughReady(self.jsStates, s_games[self.gameChoice]) then
+    elseif state.pid == 1 and button == "x" and enoughReady(self.jsStates, game) then
         self.start = true
 
     elseif state.pid == 1 and (button == "dpleft" or button == "dpright") then
