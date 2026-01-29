@@ -10,7 +10,7 @@ local s_games = {
         menu = "shooter",
         minPlayers = 1,
         maxPlayers = 4,
-        name = "Twin stick shooter",
+        name = "Zombies",
     },
 }
 
@@ -108,7 +108,7 @@ local draw = function(self)
 
     local sw,sh = love.graphics.getWidth(),love.graphics.getHeight()
     local font = love.graphics.getFont()
-    local scale = 3 + math.sin(2*3.14*love.timer.getTime())*0.5
+    --local scale = 3 + math.sin(2*3.14*love.timer.getTime())*0.5
 
     local drawCentered = function(text, y, scale)
         love.graphics.print(text, (sw-font:getWidth(text)*scale)/2, sh*y-font:getHeight()*scale/2, 0, scale, scale)
@@ -116,7 +116,7 @@ local draw = function(self)
 
     love.graphics.setColor(1, 1, 1, 1)
     local game = s_games[self.gameChoice]
-    drawCentered(game.name, 0.3, scale)
+    drawCentered("< " .. game.name .. " >", 0.3, 3)
     drawCentered(game.minPlayers .. " to " .. game.maxPlayers .." players", 0.4, 2)
     drawCentered("Press A to ready up", 0.45, 2)
     if enoughReady(self.jsStates, game) then

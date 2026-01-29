@@ -1,0 +1,8 @@
+{
+  "name": "C&Z",
+  "version": "0.0.1",
+  "author": "neb",
+  "description": "Chess, and Zombies",
+  "exec": "love .",
+  "thumbnail": "TODO.png"
+}

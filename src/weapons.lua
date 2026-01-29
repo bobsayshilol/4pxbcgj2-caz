@@ -53,7 +53,7 @@ local bulletDraw = function(self)
         lg.translate(body:getX(),body:getY())
         lg.rotate(self.angle)
         local r = self.shape:getRadius()
-        local d = 1
+        local d = 2
         lg.rectangle("fill", -d*r,-r, (d+2)*r,2*r)
     end
     lg.pop()
