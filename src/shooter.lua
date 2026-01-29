@@ -217,6 +217,7 @@ local gameChangeMap = function(self)
     local idx = self.mapIdx + 1
     if idx > #all then idx = 1 end
 
+    self.map = nil
     local map = maps.new(self.world, all[idx])
     self.map = map
     self.mapIdx = idx
