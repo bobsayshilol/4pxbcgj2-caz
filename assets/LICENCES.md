@@ -2,7 +2,7 @@
 
 ## chess-pieces-and-a-board
 
-Folder: chess-pieces-and-a-board
+Folder: chess
 
 Type: CC0
 
@@ -16,6 +16,15 @@ Folder: seamlessTextures
 Type: CC0
 
 URL: https://opengameart.org/content/seamless-textures
+
+
+## seamless-grass-textures-20-pack
+
+Folder: grass-set-00
+
+Type: CC0
+
+URL: https://opengameart.org/content/seamless-grass-textures-20-pack
 
 
 ## animated-water-texture-128px

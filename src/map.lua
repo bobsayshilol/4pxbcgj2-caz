@@ -122,33 +122,154 @@ local mapIsland = function(self, world, sw,sh)
     end
     local waterFullscreen = love.graphics.newQuad(0,0, sw,sh, waters[0])
 
+    local sandImg = love.graphics.newImage("assets/seamlessTextures/100_1180_seamless.JPG")
+    sandImg:setWrap("repeat", "repeat")
+    local sandScale = 0.4
+    local sandFullscreen = love.graphics.newQuad(0,0, sw/sandScale,sh/sandScale, sandImg)
+
+    local grassImg = love.graphics.newImage("assets/grass-set-00/grass03.png")
+    grassImg:setWrap("repeat", "repeat")
+    local grassScale = 0.3
+    local grassFullscreen = love.graphics.newQuad(0,0, sw/grassScale,sh/grassScale, grassImg)
+
+    local paveImg = love.graphics.newImage("assets/seamlessTextures/100_1453_seamless.JPG")
+    paveImg:setWrap("repeat", "repeat")
+    local paveScale = 0.2
+    local paveFullscreen = love.graphics.newQuad(0,0, sw/paveScale,sh/paveScale, paveImg)
+
+    -- Layout.
+    local center = 1.5
+    local sandR = 1.25
+    local paveR = 0.6
+    local cx,cy = (1+center)/2,(1+center)/2
+
+    -- Shader approach.
+    local canvas,shader
+    if g_use_shaders then
+        canvas = love.graphics.newCanvas()
+        shader = love.graphics.newShader([[
+            uniform Image waterImg;
+            uniform Image sandImg;
+            uniform Image grassImg;
+            uniform Image paveImg;
+            uniform float waterR;
+
+            vec4 effect(vec4 color, Image canvas, vec2 texture_coords, vec2 screen_coords) {
+                const float sandR = ]] .. sandR .. [[;
+                const float paveR = ]] .. paveR .. [[;
+                const vec2 cxy = vec2( ]] .. cx .. [[, ]] .. cy .. [[ );
+                const float waterScale = 1.0 / 0.1;
+                const float sandScale = 1.0 / ]] .. sandScale .. [[;
+                const float grassScale = 1.0 / ]] .. grassScale .. [[;
+                const float paveScale = 1.0 / ]] .. paveScale .. [[;
+
+                // 2x width of blend region.
+                const float blendRegion = 0.05;
+
+                // Work out where we are.
+                // TODO: this isn't very efficient, but it works
+                float dist = length(texture_coords - cxy);
+                vec4 ret = vec4(0,0,0,0);
+                if (dist > waterR + blendRegion) {
+                    // Water only.
+                    ret = Texel(waterImg, texture_coords * waterScale);
+                } else if (dist > waterR - blendRegion) {
+                    // Blend between water and sand.
+                    float t = (dist - (waterR - blendRegion)) / (2 * blendRegion);
+                    vec4 a = Texel(waterImg, texture_coords * waterScale);
+                    vec4 b = Texel(sandImg, texture_coords * sandScale);
+                    ret = mix(b, a, t);
+
+                } else if (dist > sandR + blendRegion) {
+                    ret = Texel(sandImg, texture_coords * sandScale);
+                } else if (dist > sandR - blendRegion) {
+                    float t = (dist - (sandR - blendRegion)) / (2 * blendRegion);
+                    vec4 a = Texel(sandImg, texture_coords * sandScale);
+                    vec4 b = Texel(grassImg, texture_coords * grassScale);
+                    ret = mix(b, a, t);
+
+                } else if (dist > paveR + blendRegion) {
+                    ret = Texel(grassImg, texture_coords * grassScale);
+                } else if (dist > paveR - blendRegion) {
+                    float t = (dist - (paveR - blendRegion)) / (2 * blendRegion);
+                    vec4 a = Texel(grassImg, texture_coords * grassScale);
+                    vec4 b = Texel(paveImg, texture_coords * paveScale);
+                    ret = mix(b, a, t);
+
+                } else {
+                    ret = Texel(paveImg, texture_coords * paveScale);
+                }
+                return ret;
+            }
+        ]])
+    end
+
     -- Background.
     self.drawBack = function(self,mapX,mapY)
         local lg = love.graphics
+        local useShader = g_use_shaders
 
-        -- Water.
         local t = love.timer.getTime()
         local wi = math.floor(t * waterFPS) % #waters
-        lg.setColor(1,1,1)
-        lg.draw(waters[wi], waterFullscreen, 0,0)
+        local waterImg = waters[wi]
+        local waterR = center + (useShader and 0.03 or 0.01)*math.sin(t*2)
 
-        local center = 1.5
-        local waterR = center + 0.01*math.sin(t*2)
-        local sandR = 1.3
-        local paveR = 0.8
-        local cx,cy = sw*(1+center)/2,sh*(1+center)/2
+        --useShader = useShader and ((t%2)<1) -- for comparisons
 
-        -- Sand.
-        lg.setColor(1,1,0)
-        lg.ellipse("fill", cx,cy, sw*waterR,sh*waterR)
+        if useShader then
+            shader:send("waterImg", waterImg)
+            shader:send("sandImg", sandImg)
+            shader:send("grassImg", grassImg)
+            shader:send("paveImg", paveImg)
+            shader:send("waterR", waterR)
+            lg.setShader(shader)
+            lg.setColor(1,1,1)
+            lg.draw(canvas, 0,0) -- rectangle's aren't textured, so just throw a canvas at it
+            lg.setShader()
 
-        -- Grass.
-        lg.setColor(0,0.8,0)
-        lg.ellipse("fill", cx,cy, sw*sandR,sh*sandR)
+        elseif true then
+            local stencilFunc = function()
+                -- Water = 0.
+                -- Sand = 1.
+                lg.ellipse("fill", sw*cx,sh*cy, sw*waterR,sh*waterR)
+                -- Grass = 2.
+                lg.ellipse("fill", sw*cx,sh*cy, sw*sandR,sh*sandR)
+                -- Pavement = 3.
+                lg.ellipse("fill", sw*cx,sh*cy, sw*paveR,sh*paveR)
+            end
+            lg.stencil(stencilFunc, "increment")
 
-        -- Pavement.
-        lg.setColor(0.5,0.5,0.5)
-        lg.ellipse("fill", cx,cy, sw*paveR,sh*paveR)
+            lg.setColor(1,1,1)
+
+            -- Water = 0.
+            lg.setStencilTest("equal", 0)
+            lg.draw(waterImg, waterFullscreen, 0,0)
+            -- Sand = 1.
+            lg.setStencilTest("equal", 1)
+            lg.draw(sandImg, sandFullscreen, 0,0, 0, sandScale)
+            -- Grass = 2.
+            lg.setStencilTest("equal", 2)
+            lg.draw(grassImg, grassFullscreen, 0,0, 0, grassScale)
+            -- Pavement = 3.
+            lg.setStencilTest("equal", 3)
+            lg.draw(paveImg, paveFullscreen, 0,0, 0, paveScale)
+
+            lg.setStencilTest()
+
+        else
+            -- Water
+            lg.setStencilTest("equal", 0)
+            lg.draw(waterImg, waterFullscreen, 0,0)
+            -- Sand.
+            lg.setColor(1,1,0)
+            lg.ellipse("fill", sw*cx,sh*cy, sw*waterR,sh*waterR)
+            -- Grass.
+            lg.setColor(0,0.8,0)
+            lg.ellipse("fill", sw*cx,sh*cy, sw*sandR,sh*sandR)
+            -- Pavement.
+            lg.setColor(0.5,0.5,0.5)
+            lg.ellipse("fill", sw*cx,sh*cy, sw*paveR,sh*paveR)
+        end
     end
 
     -- Foreground.
@@ -291,7 +412,7 @@ local mapRoofs = function(self, world, sw,sh)
         lg.rectangle("fill", xr,0, xr,sh)
 
         -- Walkways.
-        lg.setColor(1,1,1,0.4)
+        lg.setColor(0.75,0.75,0.75,0.8)
         lg.rectangle("fill", xl,ww1y1, xr-xl,ww1y2-ww1y1)
         lg.rectangle("fill", xl,ww2y1, xr-xl,ww2y2-ww2y1)
         lg.rectangle("fill", xl,ww3y1, xr-xl,ww3y2-ww3y1)

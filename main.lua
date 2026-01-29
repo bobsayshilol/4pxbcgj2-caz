@@ -4,6 +4,7 @@ local s_profiler = nil
 local s_frame = 0
 
 g_debugging = false
+g_use_shaders = true
 
 
 
@@ -85,6 +86,8 @@ function love.load(args)
             profile = true
         elseif arg == "--debug" then
             g_debugging = true
+        elseif arg == "--no-shaders" then
+            g_use_shaders = false
         end
     end
 
