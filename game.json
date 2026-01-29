@@ -3,6 +3,6 @@
   "version": "0.0.1",
   "author": "neb",
   "description": "Chess, and Zombies",
-  "exec": "love .",
+  "exec": "love . --heartberry",
   "thumbnail": "TODO.png"
 }
