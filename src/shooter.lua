@@ -468,6 +468,22 @@ local gamepadpressed = function(self, js, button)
     if button == "leftshoulder" and player.health <= 0 and self.revives > 0 then
         self.revives = self.revives - 1
         player.health = 100
+
+        -- Kill everything around us.
+        local x,y,pr = player.body:getX(),player.body:getY(),player.shape:getRadius()
+        local radius = pr*4
+        local killNearby = function(fixture)
+            if fixture:getCategory() == PHYS_CATEGORY_ENEMY then
+                local enemy = fixture:getUserData()
+                local ex,ey = enemy.body:getX(),enemy.body:getY()
+                ex,ey = ex-x,ey-y
+                if ex*ex+ey*ey < radius*radius then
+                    enemy.health = -1
+                end
+            end
+            return true
+        end
+        self.world:queryBoundingBox(x-2*radius,y-2*radius, x+2*radius,y+2*radius, killNearby)
     end
 end
 
@@ -540,7 +556,7 @@ local draw = function(self)
     for pid,player in ipairs(players) do
         -- TODO
         local col = pCols[pid]
-        lg.setColor(col[1],col[2],col[3])
+        lg.setColor(col[1],col[2],col[3],0.6)
         local x,y = player.body:getX(),player.body:getY()
         lg.print("Gun " .. player.id, x,y, player.angle)
         lg.circle("fill", x,y, player.shape:getRadius())
