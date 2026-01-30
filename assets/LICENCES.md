@@ -53,3 +53,12 @@ Type: CC0
 
 URL: https://opengameart.org/content/animated-top-down-zombie
 
+
+## smoke-particle-assets
+
+Folder: smokeParticleAssets
+
+Type: CC0
+
+URL: https://opengameart.org/content/smoke-particle-assets
+

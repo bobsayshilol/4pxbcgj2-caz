@@ -1,3 +1,8 @@
+local rpgImages = {}
+for i=0,5 do
+    rpgImages[i] = love.graphics.newImage("assets/smokeParticleAssets/whitePuff0" .. i .. ".png")
+end
+
 local WeaponTypes = {
     SMG = {
         name = "SMG",
@@ -34,12 +39,17 @@ local WeaponTypes = {
         damage = 500,
         vib = { 1.0, 0.4, 0.08 },
         duration = 12,
-        --love.graphics.newImage("assets/"), -- TODO
         displayFor = 2.5,
         drawImpact = function(impact)
             local fade = impact.displaying / 2.5 -- must match above
+            fade = math.sqrt(fade)
             love.graphics.setColor(1,1,1,fade)
-            love.graphics.circle("fill", impact.x,impact.y, 50)
+            local imgs = rpgImages
+            local img = imgs[impact.imgIdx % (1+#imgs)]
+            --love.graphics.circle("fill", impact.x,impact.y, 50)
+            local r = 200
+            local w,h = img:getWidth(),img:getHeight()
+            love.graphics.draw(img, impact.x-r/4,impact.y-r/2, r/w,r/h)
         end,
     },
 }
@@ -76,6 +86,7 @@ local bulletDestroy = function(self, impacts)
         displaying = self.typ.displayFor,
         x = x,
         y = y,
+        imgIdx = love.math.random(100),
         draw = self.typ.drawImpact,
     }
     table.insert(impacts, impact)

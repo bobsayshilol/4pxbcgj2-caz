@@ -192,7 +192,7 @@ local managerDraw = function(self)
 
     local t = love.timer.getTime()
     local fps = 30
-    local ti = math.floor(t * fps) % #textureEnemies
+    local ti = math.floor(t * fps) % (1+#textureEnemies)
     local img = textureEnemies[ti]
     local scale = 1.6 -- magic number
     local iw,ih = 2*scale/img:getWidth(),2*scale/img:getHeight()
