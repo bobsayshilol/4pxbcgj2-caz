@@ -12,6 +12,15 @@ local PER_SPAWNER_EVERY = 1.8
 
 
 
+-- Textures.
+local textureEnemies = {}
+for i=0,16 do
+    local enemy = love.graphics.newImage("assets/tds_zombie/skeleton-move_" .. i .. ".png")
+    textureEnemies[i] = enemy
+end
+
+
+
 local trySpawnEnemy = function(self)
     -- Check that the next spawner is empty.
     local order = self.order
@@ -178,11 +187,28 @@ local managerUpdate = function(self, dt)
 end
 
 local managerDraw = function(self)
-    love.graphics.setColor(1,1,1,1)
+    local lg = love.graphics
+    lg.setColor(1,1,1,1)
+
+    local t = love.timer.getTime()
+    local fps = 30
+    local ti = math.floor(t * fps) % #textureEnemies
+    local img = textureEnemies[ti]
+    local scale = 1.6 -- magic number
+    local iw,ih = 2*scale/img:getWidth(),2*scale/img:getHeight()
+
     for _,enemy in pairs(self.enemies) do
         local body = enemy.body
         local x,y = body:getX(),body:getY()
-        love.graphics.circle("fill", x,y, enemy.shape:getRadius())
+        local r = enemy.shape:getRadius()
+
+        --lg.circle("fill", x,y, r)
+        local dy = -0.5*r -- BODGE to match sprite
+        lg.push()
+        lg.translate(x,y)
+        lg.rotate(enemy.angle)
+        lg.draw(img, -r,-r+dy, 0, r*iw,r*ih)
+        lg.pop()
     end
 end
 

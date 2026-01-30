@@ -36,6 +36,11 @@ local maps = require("src/map")
 
 
 
+-- Textures.
+local texturePlayer = love.graphics.newImage("assets/Top_Down_Survivor/survivor-shoot_rifle_0.png")
+
+
+
 -- Power ups.
 local POWERUP_DISPLAY_FOR = 8
 local s_powerUps = {
@@ -580,12 +585,21 @@ local draw = function(self)
     -- Render players.
     local pCols = g_globals.playerCols
     for pid,player in ipairs(players) do
-        -- TODO
+        -- Colour indicator.
         local col = pCols[pid]
-        lg.setColor(col[1],col[2],col[3],0.6)
+        lg.setColor(col[1],col[2],col[3],0.4)
         local x,y = player.body:getX(),player.body:getY()
-        lg.print("Gun " .. player.id, x,y, player.angle)
-        lg.circle("fill", x,y, player.shape:getRadius())
+        local r = player.shape:getRadius()
+        lg.circle("fill", x,y, r)
+
+        -- Player.
+        lg.setColor(1,1,1)
+        local dy = -0.2*r -- BODGE to match sprite
+        lg.push()
+        lg.translate(x,y)
+        lg.rotate(player.angle)
+        lg.draw(texturePlayer, -r,-r+dy, 0, 2*r/texturePlayer:getWidth(),2*r/texturePlayer:getHeight())
+        lg.pop()
     end
 
     -- Render pickups.
