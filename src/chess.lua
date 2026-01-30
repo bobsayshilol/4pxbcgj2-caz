@@ -401,9 +401,15 @@ local draw = function(self)
 
     -- Show game stats.
     if self.winner then
+        local font = love.graphics.getFont()
+
+        local drawCentered = function(text, y, scale)
+            love.graphics.print(text, (screenW-font:getWidth(text)*scale)/2, screenH*y-font:getHeight()*scale/2, 0, scale, scale)
+        end
+
         love.graphics.setColor(self.winner.col[1], self.winner.col[2], self.winner.col[3], 1)
-        love.graphics.print("Player " .. self.winner.id .. " wins!", screenW / 2, screenH / 3, 0, 5)
-        love.graphics.print("Press X to return", screenW / 2, screenH * 2/3, 0, 3)
+        drawCentered("Player " .. self.winner.id .. " wins!", 1/3, 6)
+        drawCentered("Press X to return", 2/3, 3)
     end
 end
 

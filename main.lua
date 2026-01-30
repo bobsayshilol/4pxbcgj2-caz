@@ -103,6 +103,13 @@ function love.load(args)
         s_profiler.start()
     end
 
+    -- Setup font.
+    -- TODO: should be one per font size, but too late for that now
+    local lg = love.graphics
+    local font = lg.newFont(18)
+    --font:setFilter("nearest", "nearest")
+    lg.setFont(font)
+
     -- Start the game.
     g_globals = globalsMake()
     s_menu = s_menus["splash"]()
