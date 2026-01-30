@@ -5,12 +5,22 @@ local s_games = {
         minPlayers = 2,
         maxPlayers = 4,
         name = "Multiplayer realtime chess",
+        desc1 = "Same as ordinary chess, except that you have 2 kings to protect,",
+        desc2 = "pawns can move horizontally and vertically, and you can't move",
+        desc3 = "the same type of piece twice in a row.",
+        desc4 = "D-pad to move, A to select/place a piece, B to unselect, left",
+        desc5 = "shoulder to view current move, and right shoulder to move faster.",
     },
     {
         menu = "shooter",
         minPlayers = 1,
         maxPlayers = 4,
         name = "Zombies",
+        desc1 = "It's a CoD Zombies clone, 'nuf said.",
+        desc2 = "",
+        desc3 = "",
+        desc4 = "Twin stick shooter controls. Left shoulder to respawn.",
+        desc5 = "",
     },
 }
 
@@ -116,14 +126,19 @@ local draw = function(self)
 
     love.graphics.setColor(1, 1, 1, 1)
     local game = s_games[self.gameChoice]
-    drawCentered("< " .. game.name .. " >", 0.3, 3)
-    drawCentered(game.minPlayers .. " to " .. game.maxPlayers .." players", 0.4, 2)
-    drawCentered("Press A to ready up", 0.45, 2)
+    drawCentered("< " .. game.name .. " >", 0.15, 3)
+    drawCentered(game.minPlayers .. " to " .. game.maxPlayers .." players", 0.25, 2)
+    drawCentered(game.desc1, 0.35, 2)
+    drawCentered(game.desc2, 0.4, 2)
+    drawCentered(game.desc3, 0.45, 2)
+    drawCentered(game.desc4, 0.5, 2)
+    drawCentered(game.desc5, 0.55, 2)
+    drawCentered("Press A to ready up", 0.65, 2)
     if enoughReady(self.jsStates, game) then
-        drawCentered("Press X to start", 0.5, 2)
+        drawCentered("Press X to start", 0.7, 2)
     end
 
-    local y = 0.5
+    local y = 0.7
     for js,state in pairs(self.jsStates) do
         y = y + 0.05
         local id,iid = js:getID()
