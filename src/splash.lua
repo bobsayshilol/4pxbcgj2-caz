@@ -28,7 +28,7 @@ local draw = function(self)
     drawCentered("CHESS", 0.4,0.3, scale(6, 1.5, 0), -3.14/8)
     drawCentered("AND ZOMBIES", 0.6,0.5, scale(3, 1, -0.2), 3.14/8)
 
-    drawCentered("Press any buton", 0.5,0.8, 2, 0)
+    drawCentered("Press any button", 0.5,0.8, 2, 0)
 end
 
 

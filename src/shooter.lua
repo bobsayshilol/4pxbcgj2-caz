@@ -334,10 +334,12 @@ local update = function(self, dt)
             end
 
         elseif stage == STAGE_DEAD then
+--[[
             if self.stageTimer > 10 then
                 self.stageTimer = 0
                 self.stage = STAGE_OVER
             end
+--]]
 
         elseif stage == STAGE_OVER then
             return "menu"
@@ -484,6 +486,10 @@ local gamepadpressed = function(self, js, button)
             return true
         end
         self.world:queryBoundingBox(x-2*radius,y-2*radius, x+2*radius,y+2*radius, killNearby)
+
+    elseif button == "b" and self.stage == STAGE_DEAD and self.stageTimer > 3 then
+        self.stage = STAGE_OVER
+
     end
 end
 
@@ -524,6 +530,7 @@ local draw = function(self)
     lg.clear(0, 0, 0, 1)
 
     local screenW,screenH = lg.getWidth(),lg.getHeight()
+    local font = love.graphics.getFont()
     local players = self.players
     local numPlayers = #players
 
@@ -563,6 +570,7 @@ local draw = function(self)
     end
 
     -- Render pickups.
+    lg.setColor(1,1,1,1)
     for _,pickup in pairs(self.pickups) do
         lg.print(pickup.powerUp.text .. " " .. math.floor(pickup.time), pickup.body:getX(),pickup.body:getY())
     end
@@ -598,25 +606,57 @@ local draw = function(self)
 
     -- Render overlays.
     lg.setColor(1,1,1,1)
-    lg.print("Round " .. self.enemyManager.round, screenW/2,screenH*2/20)
+    lg.print("Wave " .. self.enemyManager.round, screenW/2,screenH*2/20)
     lg.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*3/20)
     lg.print("Revives " .. self.revives, screenW/2,screenH*4/20)
 
-    local p = 0.1
-    local corners = {
-        {p*screenW, p*screenH},
-        {(1-p)*screenW, p*screenH},
-        {p*screenW, (1-p)*screenH},
-        {(1-p)*screenW, (1-p)*screenH},
-    }
-    for pid,player in ipairs(players) do
-        lg.print(pid .. ": " .. player.health .. " " .. player.kills .. " " .. player.score, corners[pid][1], corners[pid][2])
+    -- Health bars and points.
+    do
+        local printHealth = function(col, hp, score, top, left)
+            local ow,oh = 0.02*screenW,0.02*screenW
+            local pw = 0.18*screenW
+            local ph = 0.02*screenH
+            local px = left and ow or (screenW-pw-ow)
+            local py = top and oh or (screenH-2*ph-oh)
+            local text = "Score: " .. score
+            --local tw,th = font:getWidth(text),font:getHeight()
+
+            -- Full health bar, then player stuff.
+            local a = 0.7
+            if top then
+                lg.setColor(1,1,1,a)
+                lg.rectangle("fill", px,py, pw,ph) -- full
+                lg.setColor(col[1],col[2],col[3],a)
+                lg.rectangle("fill", px,py, pw*hp,ph) -- health
+                lg.print(text, px,py+ph) -- score
+            else
+                lg.setColor(1,1,1,a)
+                lg.rectangle("fill", px,py+ph, pw,ph) -- full
+                lg.setColor(col[1],col[2],col[3],a)
+                lg.print(text, px,py) -- score
+                lg.rectangle("fill", px,py+ph, pw*hp,ph) -- health
+            end
+        end
+        local tls = {
+            { true, true, },
+            { true, false, },
+            { false, true, },
+            { false, false, },
+        }
+        for pid,player in ipairs(players) do
+            local col = pCols[pid]
+            local tl = tls[pid]
+            local hp = player.health / 100
+            printHealth(col, hp, player.score, tl[1], tl[2])
+        end
     end
 
     do
+        lg.setColor(1,1,1,1)
+
         local stage = self.stage
         if stage == STAGE_FIGHTING and self.stageTimer < 3 then
-            lg.print("ROUND " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
+            lg.print("WAVE " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
         elseif stage == STAGE_DEAD then
             lg.print("GAME OVER", screenW/2,screenH/4, 0, 5)
             local y = screenH/3
