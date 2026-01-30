@@ -297,10 +297,17 @@ local mapRoofs = function(self, world, sw,sh)
 
     -- Add enemy spawners.
     do
-        addSpawner(self, world, 0,(ww1y2+ww2y1)/2, sw,sh, ROT_EAST)
-        addSpawner(self, world, sw,(ww1y2+ww2y1)/2, sw,sh, ROT_WEST)
-        addSpawner(self, world, 0,(ww2y2+ww3y1)/2, sw,sh, ROT_EAST)
-        addSpawner(self, world, sw,(ww2y2+ww3y1)/2, sw,sh, ROT_WEST)
+        --addSpawner(self, world, 0,(ww1y2+ww2y1)/2, sw,sh, ROT_EAST)
+        --addSpawner(self, world, sw,(ww1y2+ww2y1)/2, sw,sh, ROT_WEST)
+        --addSpawner(self, world, 0,(ww2y2+ww3y1)/2, sw,sh, ROT_EAST)
+        --addSpawner(self, world, sw,(ww2y2+ww3y1)/2, sw,sh, ROT_WEST)
+
+        addSpawner(self, world, 0,0.2*sh, sw,sh, ROT_EAST)
+        addSpawner(self, world, 0,0.6*sh, sw,sh, ROT_EAST)
+        addSpawner(self, world, xl/2,sh, sw,sh, ROT_NORTH)
+        addSpawner(self, world, sw,0.8*sh, sw,sh, ROT_WEST)
+        addSpawner(self, world, sw,0.4*sh, sw,sh, ROT_WEST)
+        addSpawner(self, world, (xr+sw)/2,0, sw,sh, ROT_SOUTH)
     end
 
     -- Holes for walkways.
