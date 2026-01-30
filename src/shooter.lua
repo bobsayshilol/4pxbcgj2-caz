@@ -45,7 +45,7 @@ local texturePlayer = love.graphics.newImage("assets/Top_Down_Survivor/survivor-
 local POWERUP_DISPLAY_FOR = 8
 local s_powerUps = {
     {
-        text = "double points", -- TODO: sprites
+        text = "2x points",
         apply = function(game, player)
             game.powerUps.doublePoints = { time = 12 }
         end,
@@ -176,7 +176,8 @@ local gameEnemyKilled = function(game, enemy)
 
         -- Spawn it.
         local body = love.physics.newBody(game.world, enemy.body:getX(),enemy.body:getY(), "static")
-        local fixture = love.physics.newFixture(body, love.physics.newCircleShape(love.graphics.getWidth() / 75))
+        local shape = love.physics.newCircleShape(love.graphics.getWidth() / 75)
+        local fixture = love.physics.newFixture(body, shape)
 
         -- We're a pickup, and we collide with players only.
         fixture:setCategory(PHYS_CATEGORY_PICKUP)
@@ -189,6 +190,7 @@ local gameEnemyKilled = function(game, enemy)
             powerUp = powerUp,
 
             body = body,
+            shape = shape,
 
             time = POWERUP_DISPLAY_FOR,
             player = nil, -- set when player picks this up
@@ -603,9 +605,36 @@ local draw = function(self)
     end
 
     -- Render pickups.
-    lg.setColor(1,1,1,1)
-    for _,pickup in pairs(self.pickups) do
-        lg.print(pickup.powerUp.text .. " " .. math.floor(pickup.time), pickup.body:getX(),pickup.body:getY())
+    do
+        local lineWidth = lg.getLineWidth()
+        --lg.setLineWidth(3)
+
+        local put = love.timer.getTime()
+        local puc = {
+            0.5 + 0.5 * math.sin(2*put + 0.1),
+            0.5 + 0.5 * math.sin(4*put + 0.4),
+            0.5 + 0.5 * math.sin(8*put + 0.7),
+        }
+        lg.setColor(puc[1], puc[2], puc[3])
+        for _,pickup in pairs(self.pickups) do
+            -- TODO: sprites
+            if pickup.time > 0 then
+                local x,y = pickup.body:getX(),pickup.body:getY()
+                local r = pickup.shape:getRadius()
+
+                -- Flash the circle to indicate how long it has left.
+                local magic = 10
+                local d = (-math.log(0.0001 + pickup.time * 0.99/POWERUP_DISPLAY_FOR)* magic) % 1
+                local cr = r*(3 + math.sin(2*3.14159*d))/4
+                lg.circle("line", x,y, cr)
+
+                local text = pickup.powerUp.text
+                local w,h = font:getWidth(text),font:getHeight()
+                lg.print(text, x-w/2,y-h/2)
+            end
+        end
+
+        lg.setLineWidth(lineWidth)
     end
 
     -- Render enemies.
