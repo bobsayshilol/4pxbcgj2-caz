@@ -70,8 +70,7 @@ local pieceMake = function(t, o, x,y)
         selected = false,
         draw = function(self, x,y, cellX,cellY)
             if not self.owner then return end -- Empty tiles aren't owned
-            local s = 1
-            if self.selected then s = 0.5 end
+            local s = self.selected and 0.5 or 1
             love.graphics.setColor(s*self.owner.col[1], s*self.owner.col[2], s*self.owner.col[3], 1)
             local image = self.typ.image
             love.graphics.draw(image, x,y, 0, cellX/image:getWidth(),cellY/image:getHeight())
@@ -349,14 +348,56 @@ local draw = function(self)
     -- Draw the player's cursor.
     local kingsPos = {{screenW/2,0}, {screenW/2,screenH-offsetY}, {0,screenH/2}, {screenW-offsetX,screenH/2}}
     local playerRadius = math.min(cellX, cellY) / 2
-    for _,player in ipairs(self.players) do
+    local lineWidth = love.graphics.getLineWidth()
+    love.graphics.setLineWidth(5)
+    for pid,player in ipairs(self.players) do
         if not playerDead(player) then
-            love.graphics.setColor(player.col[1], player.col[2], player.col[3], 1)
-            love.graphics.circle("line", offsetX+(player.x+0.5)*cellX, offsetY+(player.y+0.5)*cellY, playerRadius)
+            local col = player.col
+            local x,y = offsetX+(player.x+0.5)*cellX, offsetY+(player.y+0.5)*cellY
+
+            love.graphics.setColor(col[1], col[2], col[3])
+
+            local selection = player.selection
+            if selection then
+                -- Replace active colour to show that it's not selectable.
+                local canMove = selection:canMove(player.x,player.y)
+                local s = canMove and 1 or 0.5
+                love.graphics.setColor(s*col[1], s*col[2], s*col[3])
+
+                -- Show a line if requested.
+                local js = g_globals.pidToJs[pid]
+                local showLine = js:isGamepadDown("leftshoulder")
+                if showLine then
+                    local sx,sy = offsetX+(selection.x-0.5)*cellX, offsetY+(selection.y-0.5)*cellY
+                    love.graphics.line(x,y, sx,sy)
+                end
+            end
+
+            -- Draw the cursor.
+            local r = playerRadius
+            if pid == 1 then
+                love.graphics.circle("line", x,y, r)
+            elseif pid == 2 then
+                love.graphics.line({
+                    x-r,y+r,
+                    x+r,y+r,
+                    x,y-r,
+                    x-r,y+r,
+                })
+            elseif pid == 3 then
+                love.graphics.rectangle("line", x-r,y-r, 2*r,2*r)
+            elseif pid == 4 then
+                love.graphics.line(x-r,y-r, x+r,y+r)
+                love.graphics.line(x+r,y-r, x-r,y+r)
+            end
+
+            -- And the king count.
             local pos = kingsPos[player.id]
+            love.graphics.setColor(col[1], col[2], col[3])
             love.graphics.print("" .. player.kings, pos[1], pos[2], 0, 2)
         end
     end
+    love.graphics.setLineWidth(lineWidth)
 
     -- Show game stats.
     if self.winner then
