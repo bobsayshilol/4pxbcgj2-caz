@@ -549,6 +549,10 @@ local draw = function(self)
     local players = self.players
     local numPlayers = #players
 
+    local drawCentered = function(text, y, scale)
+        love.graphics.print(text, (screenW-font:getWidth(text)*scale)/2, screenH*y-font:getHeight()*scale/2, 0, scale, scale)
+    end
+
     -- World rendering start.
     lg.push()
 
@@ -621,9 +625,6 @@ local draw = function(self)
 
     -- Render overlays.
     lg.setColor(1,1,1,1)
-    lg.print("Wave " .. self.enemyManager.round, screenW/2,screenH*2/20)
-    lg.print("Remaining " .. self.enemyManager.enemiesRemaining, screenW/2,screenH*3/20)
-    lg.print("Revives " .. self.revives, screenW/2,screenH*4/20)
 
     -- Health bars and points.
     do
@@ -670,19 +671,28 @@ local draw = function(self)
         lg.setColor(1,1,1,1)
 
         local stage = self.stage
-        if stage == STAGE_FIGHTING and self.stageTimer < 3 then
-            lg.print("WAVE " .. self.enemyManager.round, screenW/2,screenH/2, 0, 5)
-        elseif stage == STAGE_DEAD then
-            lg.print("GAME OVER", screenW/2,screenH/4, 0, 5)
-            local y = screenH/3
-            lg.print("Player | Kills | Score", screenW/2,y, 0, 3)
-            y = y + 50
-            for pid,player in ipairs(players) do
-                lg.print(pid .. " | " .. player.kills .. " | " .. player.score, screenW/2,y, 0, 3)
-                y = y + 50
+        if stage == STAGE_FIGHTING then
+            if self.stageTimer < 3 then
+                drawCentered("WAVE " .. self.enemyManager.round, 1/2, 5)
             end
-            y = y + 50
-            lg.print("Made it to round " .. self.enemyManager.round, screenW/2,y, 0, 2)
+
+            drawCentered("Remaining " .. self.enemyManager.enemiesRemaining .. " | Revives " .. self.revives, 0.95, 1.5)
+
+        elseif stage == STAGE_DEAD then
+            drawCentered("GAME OVER", screenH/4, 5)
+            local y = 1/3
+            drawCentered("Player | Kills | Score   ", y, 3)
+            y = y + 0.1
+            for pid,player in ipairs(players) do
+                local col = pCols[pid]
+                lg.setColor(col[1],col[2],col[3],a)
+                local text = string.format("% 6i | % 5i | % 8i", pid, player.kills, player.score)
+                drawCentered(text, y, 3)
+                y = y + 0.1
+            end
+            --lg.setColor(1,1,1,1)
+            y = y + 0.1
+            drawCentered("Made it to round " .. self.enemyManager.round, y, 2)
         end
     end
 
