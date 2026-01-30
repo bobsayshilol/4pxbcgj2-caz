@@ -487,6 +487,21 @@ local gamepadpressed = function(self, js, button)
         end
         self.world:queryBoundingBox(x-2*radius,y-2*radius, x+2*radius,y+2*radius, killNearby)
 
+        -- Add an effect.
+        -- HACK: reusing the impacts
+        local impact = {
+            displaying = 0.5,
+            x = x,
+            y = y,
+            radius = radius,
+            draw = function(imp)
+                local fade = imp.displaying / 0.5 -- must match above
+                love.graphics.setColor(1,1,1,fade)
+                love.graphics.circle("fill", imp.x,imp.y, imp.radius)
+            end,
+        }
+        table.insert(self.impacts, impact)
+
     elseif button == "b" and self.stage == STAGE_DEAD and self.stageTimer > 3 then
         self.stage = STAGE_OVER
 
